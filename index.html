@@ -21,7 +21,7 @@ button.p{background:var(--ok);color:#06240f;border-color:var(--ok);font-weight:6
 .est{display:flex;justify-content:space-between;margin:6px 0;font-size:15px}
 .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
 #aviso{display:none;margin:8px 0;padding:10px 12px;border-radius:10px;background:#3a1d1d;color:#ffd0d0}
-ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}li.an span:first-child{text-decoration:line-through;color:var(--mut)}li button{min-height:34px;padding:2px 10px;font-size:14px;flex:0 0 auto}
 #conf{display:none}
 #lector{position:relative}
 #flash{position:absolute;inset:0;border:6px solid var(--ok);background:rgba(62,207,142,.35);opacity:0;pointer-events:none;border-radius:10px;transition:opacity .45s}
@@ -51,7 +51,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
   <div class="row"><input id="manual" placeholder="O escribe un código" inputmode="text" autocapitalize="characters" autocomplete="off"><button class="p" id="btnManual" style="flex:0 0 96px">Agregar</button></div>
   <div class="m">Últimos escaneos</div>
   <ul id="lista"></ul>
-  <div class="m">Para anular un escaneo, usa la app de inventario (Contar → Anular).</div>
+  <div class="m">Toca Anular junto a un escaneo para quitarlo del conteo.</div>
   <div class="row"><button id="btnBorrarConf">Borrar configuración de este teléfono</button></div>
 </div>
 
@@ -96,7 +96,12 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     var ul = $('lista'); ul.textContent = '';
     recientes.slice(0, 8).forEach(function (r) {
       var li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('span');
-      a.textContent = r.c + (r.d ? ' · ' + r.d : ''); b.textContent = r.ok ? '✓' : '…'; b.className = r.ok ? 'ok' : 'warn'; li.appendChild(a); li.appendChild(b); ul.appendChild(li);
+      a.textContent = r.c + (r.d ? ' · ' + r.d : ''); li.appendChild(a);
+      if (r.an) { li.className = 'an'; b.textContent = 'anulado'; b.className = 'm'; li.appendChild(b); ul.appendChild(li); return; }
+      var x = document.createElement('button'); x.textContent = 'Anular'; x.onclick = function () { anular(r); };
+      b.style.display = 'flex'; b.style.alignItems = 'center'; b.style.gap = '8px';
+      var ck = document.createElement('span'); ck.textContent = r.ok ? '✓' : '…'; ck.className = r.ok ? 'ok' : 'warn';
+      b.appendChild(ck); b.appendChild(x); li.appendChild(b); ul.appendChild(li);
     });
     guardar('cola', cola); guardar('enviados', enviados); guardar('recientes', recientes.slice(0, 20));
   }
@@ -136,13 +141,25 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     var item = cola[0];
     post(item).then(function (r) {
       if (r && r.ok) {
-        cola.shift(); enviados++; recientes.forEach(function (x) { if (x.id === item.id) { x.ok = true; x.d = r.detalle || ''; } }); aviso(''); banner(item.c, 'ok', r);
+        cola.shift(); enviados++; recientes.forEach(function (x) { if (x.id === item.id) { x.ok = true; x.d = r.detalle || ''; x.fila = r.fila || 0; } }); aviso(''); banner(item.c, 'ok', r);
       } else if (r && r.error === 'cerrado') { aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); pausa(true); enviando = false; pintar(); return; }
       else if (r && r.error === 'sin_lugar') { aviso('Falta elegir el rack en la app de inventario. El código queda pendiente y se guarda al elegirlo.'); banner(item.c, 'error'); enviando = false; pintar(); return; }
       else if (r && r.error === 'clave') { aviso('La clave no es válida. Abre de nuevo el enlace de configuración.'); enviando = false; return; }
       else { aviso('No se pudo guardar: ' + ((r && r.error) || 'error') + '. Se reintenta solo.'); banner(item.c, 'error'); enviando = false; pintar(); return; }
       enviando = false; pintar(); enviar();
     }).catch(function () { enviando = false; banner(item.c, 'error'); aviso('Sin conexión. Los códigos quedan guardados y se envían solos.'); pintar(); });
+  }
+  // --- anular un escaneo desde la lista (si aún no se envió, solo se quita de la cola)
+  function anular(r) {
+    if (!confirm('¿Anular el escaneo ' + r.c + (r.d ? ' (' + r.d + ')' : '') + '?')) return;
+    var pos = -1; cola.forEach(function (x, i) { if (x.id === r.id) pos = i; });
+    if (pos >= 0) { cola.splice(pos, 1); r.an = true; aviso(''); pintar(); return; }
+    if (!r.fila) { aviso('Este escaneo hay que anularlo en la app de inventario (Contar → Anular).'); return; }
+    fetch(cfg.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ t: cfg.t, accion: 'anular', fila: r.fila, c: r.c }) })
+      .then(function (x) { return x.json(); }).then(function (x) {
+        if (x && x.ok) { r.an = true; if (enviados > 0) enviados--; aviso(''); $('ult').textContent = ''; var m = document.createElement('div'); m.className = 'm'; m.textContent = 'Anulado: ' + r.c; $('ult').appendChild(m); pintar(); }
+        else aviso('No se pudo anular: ' + ((x && x.error) || 'error'));
+      }).catch(function () { aviso('Sin conexión: no se pudo anular. Inténtalo de nuevo.'); });
   }
   function agregar(c) {
     c = String(c).trim(); if (!c) return;
