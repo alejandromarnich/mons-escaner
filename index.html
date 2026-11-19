@@ -14,7 +14,7 @@
 h1{font-size:18px;margin:12px 0 4px}.m{color:var(--mut);font-size:14px}
 #lugar{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}
 #lugar b{display:block;font-size:17px}
-#lector{width:100%;border-radius:10px;overflow:hidden;background:#000;min-height:220px}
+
 .row{display:flex;gap:8px;margin:8px 0}.row>*{flex:1}
 button,input{font:inherit;min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:0 12px}
 button.p{background:var(--ok);color:#06240f;border-color:var(--ok);font-weight:600}
@@ -23,7 +23,9 @@ button.p{background:var(--ok);color:#06240f;border-color:var(--ok);font-weight:6
 #aviso{display:none;margin:8px 0;padding:10px 12px;border-radius:10px;background:#3a1d1d;color:#ffd0d0}
 ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}li.an span:first-child{text-decoration:line-through;color:var(--mut)}li button{min-height:34px;padding:2px 10px;font-size:14px;flex:0 0 auto}
 #conf{display:none}
-#lector{position:relative}
+#lector{height:170px;overflow:hidden;background:#000;border-radius:10px}
+#lector video{width:100%;height:100%;object-fit:cover;display:block}
+#mira{position:absolute;left:7%;right:7%;top:20%;bottom:20%;border:2px dashed rgba(255,255,255,.85);border-radius:8px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.35)}
 #flash{position:absolute;inset:0;border:6px solid var(--ok);background:rgba(62,207,142,.35);opacity:0;pointer-events:none;border-radius:10px;transition:opacity .45s}
 #flash.on{opacity:1;transition:none}
 #ult{margin:8px 0;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line);text-align:center;min-height:64px}
@@ -43,7 +45,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
   <div id="lugar"><span class="m">Lugar actual</span><b id="lugarTxt">…</b></div>
   <div id="aviso"></div>
   <div id="ult"><div class="m">Aquí verás cada código leído</div></div>
-  <div style="position:relative"><div id="lector"></div><div id="flash"></div></div>
+  <div style="position:relative"><div id="lector"></div><div id="mira"></div><div id="flash"></div></div>
   <div class="m" id="estCam">Cámara: iniciando…</div>
   <div class="row"><button id="btnCam" hidden>Iniciar cámara</button></div>
   <div class="est"><span>Enviados: <b id="nEnv" class="ok">0</b></span><span>Pendientes: <b id="nPend">0</b></span></div>
@@ -197,8 +199,12 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     if (!flujo) return;
     if (!pausado && !leyendo && video && video.readyState >= 2 && video.videoWidth) {
       leyendo = true;
-      var w = video.videoWidth, h = video.videoHeight, sw = Math.min(w, 1280), sh = Math.round(h * sw / w);
-      canvas.width = sw; canvas.height = sh; cx.drawImage(video, 0, 0, sw, sh);
+      // solo se lee lo que queda dentro de la mira (recuadro punteado): zona visible del video, 86% de ancho x 60% de alto, centrada
+      var vw = video.videoWidth, vh = video.videoHeight, caja = $('lector'), ar = (caja.clientWidth || 320) / (caja.clientHeight || 170), visW, visH;
+      if (vw / vh > ar) { visH = vh; visW = vh * ar; } else { visW = vw; visH = vw / ar; }
+      var rw = visW * 0.86, rh = visH * 0.6, rx = (vw - visW) / 2 + (visW - rw) / 2, ry = (vh - visH) / 2 + (visH - rh) / 2;
+      var sw = Math.round(Math.min(rw, 1600)), sh = Math.round(rh * sw / rw);
+      canvas.width = sw; canvas.height = sh; cx.drawImage(video, rx, ry, rw, rh, 0, 0, sw, sh);
       var img = cx.getImageData(0, 0, sw, sh);
       ZXingWASM.readBarcodes(img, { formats: FORMATOS, tryHarder: true, tryRotate: true, tryInvert: true, tryDownscale: true, maxNumberOfSymbols: 1 }).then(function (r) {
         cuadros++; hubo = !!(r && r.length && r[0].text);
@@ -214,7 +220,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     try { ZXingWASM.prepareZXingModule({ overrides: { locateFile: function (p, pre) { return p.slice(-5) === '.wasm' ? 'lib/zxing/zxing_reader.wasm' : pre + p; } } }); } catch (e) {}
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('estCam').textContent = 'Este navegador no permite usar la cámara.'; return; }
     navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }).then(function (s) {
-      flujo = s; video = document.createElement('video'); video.setAttribute('playsinline', ''); video.muted = true; video.style.width = '100%'; video.srcObject = s;
+      flujo = s; video = document.createElement('video'); video.setAttribute('playsinline', ''); video.muted = true; video.srcObject = s;
       $('lector').textContent = ''; $('lector').appendChild(video);
       try { s.getVideoTracks()[0].applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {}); } catch (e) {}
       return video.play();
