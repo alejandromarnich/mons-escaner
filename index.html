@@ -30,13 +30,16 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
 <div class="m" id="sub">Cada código se guarda directo en la planilla de inventario.</div>
 
 <div id="conf">
-  <p>Abre el enlace de configuración que te dio Claude (una sola vez). Si lo perdiste, pídelo de nuevo.</p>
+  <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
+  <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
 </div>
 
 <div id="app" hidden>
   <div id="lugar"><span class="m">Lugar actual</span><b id="lugarTxt">…</b></div>
   <div id="aviso"></div>
   <div id="lector"></div>
+  <div class="m" id="estCam">Cámara: iniciando…</div>
+  <div class="row"><button id="btnCam" hidden>Iniciar cámara</button></div>
   <div class="est"><span>Enviados: <b id="nEnv" class="ok">0</b></span><span>Pendientes: <b id="nPend">0</b></span></div>
   <div class="row"><button id="btnPausa">Pausar cámara</button><button id="btnReenviar">Reenviar pendientes</button></div>
   <div class="row"><input id="manual" placeholder="O escribe un código" inputmode="text" autocapitalize="characters" autocomplete="off"><button class="p" id="btnManual" style="flex:0 0 96px">Agregar</button></div>
@@ -59,12 +62,25 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
   if (h) {
     var p = {}; h.split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
     if (p.u && p.t) { guardar('cfg', { u: p.u, t: p.t }); }
-    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    // En el modo app (pantalla de inicio) ya quedó guardada: se limpia la dirección. En Safari se deja, para que
+    // "Agregar a pantalla de inicio" copie la configuración (en iPhone la app de inicio guarda sus datos aparte).
+    var enApp = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    if (enApp) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
   }
   var cfg = leer('cfg', null);
-  if (!cfg) { $('conf').style.display = 'block'; return; }
+  if (!cfg) {
+    $('conf').style.display = 'block';
+    $('btnPegar').onclick = function () {
+      var t = $('pegar').value.trim(), i = t.indexOf('#'); if (i < 0) { alert('Ese texto no es un enlace de configuración.'); return; }
+      var q = {}; t.slice(i + 1).split('&').forEach(function (kv) { var j = kv.indexOf('='); if (j > 0) q[kv.slice(0, j)] = decodeURIComponent(kv.slice(j + 1)); });
+      if (!q.u || !q.t) { alert('Ese enlace no trae la configuración.'); return; }
+      guardar('cfg', { u: q.u, t: q.t }); location.reload();
+    };
+    return;
+  }
   $('app').hidden = false;
 
+  $('sub').textContent = 'Configurado ✓ · cada código se guarda directo en la planilla de inventario.';
   var cola = leer('cola', []), enviados = leer('enviados', 0), recientes = leer('recientes', []);
   var ultimo = { c: '', t: 0 }, enviando = false, pausado = false, lector = null;
 
@@ -135,12 +151,14 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     lector = new Html5Qrcode('lector', { verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
     var ancho = Math.min(window.innerWidth - 32, 420);
     lector.start({ facingMode: 'environment' }, { fps: 12, qrbox: { width: Math.round(ancho * 0.9), height: Math.round(ancho * 0.45) }, aspectRatio: 1.3 },
-      function (txt) { agregar(txt); }, function () {})
-      .catch(function (e) { aviso('No se pudo abrir la cámara. Permite el acceso a la cámara en Ajustes de Safari. (' + (e && e.message ? e.message : e) + ')'); });
+      function (txt) { $('estCam').textContent = 'Leído: ' + txt; agregar(txt); }, function () {})
+      .then(function () { $('estCam').textContent = 'Cámara lista: apunta al código de barras'; $('btnCam').hidden = true; })
+      .catch(function (e) { $('estCam').textContent = 'Cámara con problema: ' + (e && e.message ? e.message : e); $('btnCam').hidden = false; aviso('No se pudo abrir la cámara. Permite el acceso a la cámara (Ajustes > Safari > Cámara) y toca "Iniciar cámara".'); });
   }
   try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {}
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { estado(); enviar(); try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {} } });
 
+  $('btnCam').onclick = function () { aviso(''); $('estCam').textContent = 'Cámara: iniciando…'; try { if (lector) lector.clear(); } catch (e) {} iniciar(); };
   $('btnPausa').onclick = function () { pausa(); };
   $('btnReenviar').onclick = function () { aviso(''); enviar(); };
   $('btnManual').onclick = function () { agregar($('manual').value); $('manual').value = ''; };
