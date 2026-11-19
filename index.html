@@ -25,7 +25,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
 #conf{display:none}
 #lector{height:190px;overflow:hidden;background:#000;border-radius:10px}
 #lector video{width:100%;height:100%;object-fit:cover;display:block}
-#mira{position:absolute;left:7%;right:7%;top:20%;bottom:20%;border:2px dashed rgba(255,255,255,.85);border-radius:8px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.35)}
+#mira{position:absolute;left:7%;right:7%;top:20%;bottom:20%;border:2px dashed rgba(255,255,255,.85);border-radius:8px;pointer-events:none}
 #flash{position:absolute;inset:0;border:6px solid var(--ok);background:rgba(62,207,142,.35);opacity:0;pointer-events:none;border-radius:10px;transition:opacity .45s}
 #flash.on{opacity:1;transition:none}
 #ult{margin:8px 0;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line);text-align:center;min-height:64px}
@@ -198,8 +198,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     $('btnPausa').textContent = pausado ? 'Reanudar cámara' : 'Pausar cámara';
     if (video) { try { pausado ? video.pause() : video.play(); } catch (e) {} }
   }
-  // Lectura en dos zonas, alternando: la mira (rápida y precisa) y toda el área visible (por si el código quedó fuera de la mira).
-  // Sin rotar ni invertir (los códigos de Mons son horizontales y oscuros sobre claro): así cada cuadro es varias veces más rápido.
+  // Lectura del cuadro completo de la cámara, con rotación e inversión activadas.
   var turno = 0, msTotal = 0, msN = 0, ultimoTiempo = -1, ultimoAvance = Date.now(), verZona = false;
   function zona(completa) {
     var vw = video.videoWidth, vh = video.videoHeight, caja = $('lector'), ar = (caja.clientWidth || 320) / (caja.clientHeight || 170), visW, visH;
@@ -216,11 +215,12 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     }
     if (!pausado && !leyendo && video && video.readyState >= 2 && video.videoWidth) {
       leyendo = true; hubo = false;
-      var t0 = Date.now(), z = zona(turno++ % 2 === 1), sw = Math.round(Math.min(z.w, 1200)), sh = Math.round(z.h * sw / z.w);
-      canvas.width = sw; canvas.height = sh; cx.drawImage(video, z.x, z.y, z.w, z.h, 0, 0, sw, sh);
+      // se lee TODO el cuadro de la cámara (como en la v7, que leía mejor); el recuadro de pantalla es solo una guía
+      var t0 = Date.now(), vw = video.videoWidth, vh = video.videoHeight, sw = Math.min(vw, 1280), sh = Math.round(vh * sw / vw);
+      canvas.width = sw; canvas.height = sh; cx.drawImage(video, 0, 0, sw, sh);
       if (verZona) { var d = $('zonaVista'); d.width = sw; d.height = sh; d.getContext('2d').drawImage(canvas, 0, 0); }
       var img = cx.getImageData(0, 0, sw, sh);
-      ZXingWASM.readBarcodes(img, { formats: FORMATOS, tryHarder: true, tryRotate: false, tryInvert: false, tryDownscale: true, maxNumberOfSymbols: 1 }).then(function (r) {
+      ZXingWASM.readBarcodes(img, { formats: FORMATOS, tryHarder: true, tryRotate: true, tryInvert: true, tryDownscale: true, maxNumberOfSymbols: 1 }).then(function (r) {
         cuadros++; msTotal += Date.now() - t0; msN++;
         if (r && r.length && r[0].text) { hubo = true; $('estCam').textContent = 'Leído: ' + r[0].text + ' (' + r[0].format + ')'; agregar(r[0].text); }
         else if (cuadros % 6 === 0) { $('estCam').textContent = 'Buscando código… (' + Math.round(msTotal / msN) + ' ms por cuadro)'; msTotal = 0; msN = 0; }
