@@ -88,7 +88,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
 
   $('sub').textContent = 'Configurado ✓ · cada código se guarda directo en la planilla de inventario.';
   var cola = leer('cola', []), enviados = leer('enviados', 0), recientes = leer('recientes', []);
-  var ultimo = { c: '', t: 0 }, enviando = false, pausado = false;
+  var ultimo = { c: '', t: 0 }, enviando = false, pausado = false, lugarAct = null;
 
   function aviso(t) { var a = $('aviso'); if (!t) { a.style.display = 'none'; return; } a.textContent = t; a.style.display = 'block'; }
   function pintar() {
@@ -128,7 +128,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
 
   // --- envío con cola (si no hay internet, se guarda y se reenvía)
   function post(item) {
-    return fetch(cfg.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ t: cfg.t, c: item.c, id: item.id }) })
+    return fetch(cfg.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ t: cfg.t, c: item.c, id: item.id, ts: item.ts, lg: item.lg }) })
       .then(function (r) { return r.json(); });
   }
   function enviar() {
@@ -138,6 +138,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
       if (r && r.ok) {
         cola.shift(); enviados++; recientes.forEach(function (x) { if (x.id === item.id) { x.ok = true; x.d = r.detalle || ''; } }); aviso(''); banner(item.c, 'ok', r);
       } else if (r && r.error === 'cerrado') { aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); pausa(true); enviando = false; pintar(); return; }
+      else if (r && r.error === 'sin_lugar') { aviso('Falta elegir el rack en la app de inventario. El código queda pendiente y se guarda al elegirlo.'); banner(item.c, 'error'); enviando = false; pintar(); return; }
       else if (r && r.error === 'clave') { aviso('La clave no es válida. Abre de nuevo el enlace de configuración.'); enviando = false; return; }
       else { aviso('No se pudo guardar: ' + ((r && r.error) || 'error') + '. Se reintenta solo.'); banner(item.c, 'error'); enviando = false; pintar(); return; }
       enviando = false; pintar(); enviar();
@@ -146,9 +147,12 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
   function agregar(c) {
     c = String(c).trim(); if (!c) return;
     var ahora = Date.now();
-    if (c === ultimo.c && ahora - ultimo.t < 3000) return; // lectura doble
+    if (c === ultimo.c && ahora - ultimo.t < 3000) { $('estCam').textContent = 'Mismo código: espera 3 segundos para contar otro igual'; return; } // lectura doble
+    if (lugarAct === '') { // ya sabemos que no hay rack elegido: no se guarda para no mezclarlo con otro rack
+      pitido(false); aviso('Elige un rack en la app de inventario antes de escanear. Este código NO se guardó.'); banner(c, 'error'); $('ult').firstChild.textContent = '⚠ ' + c; $('ult').lastChild.textContent = 'No guardado: falta elegir el rack'; return;
+    }
     ultimo = { c: c, t: ahora };
-    var item = { c: c, id: ahora.toString(36) + Math.random().toString(36).slice(2, 8) };
+    var item = { c: c, id: ahora.toString(36) + Math.random().toString(36).slice(2, 8), ts: ahora, lg: lugarAct || '' };
     cola.push(item); recientes.unshift({ c: c, id: item.id, ok: false });
     pitido(true); destello(); banner(c, 'envio'); pintar(); enviar();
   }
@@ -156,7 +160,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
   // --- lugar actual (lo elige la app de inventario)
   function estado() {
     fetch(cfg.u + (cfg.u.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(cfg.t)).then(function (r) { return r.json(); }).then(function (r) {
-      if (r && r.ok) { $('lugarTxt').textContent = r.lugar || '(sin lugar: elígelo en la app de inventario)'; if (r.cerrado) aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); }
+      if (r && r.ok) { lugarAct = r.lugar || ''; $('lugarTxt').textContent = r.lugar || '(sin lugar: elígelo en la app de inventario)'; if (r.cerrado) aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); }
     }).catch(function () {});
   }
 
