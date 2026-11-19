@@ -49,7 +49,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
   <div class="row"><button id="btnBorrarConf">Borrar configuración de este teléfono</button></div>
 </div>
 
-<script src="lib/html5-qrcode.min.js"></script>
+<script src="lib/zxing/reader.js"></script>
 <script>
 (function () {
   var LS = window.localStorage;
@@ -82,7 +82,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
 
   $('sub').textContent = 'Configurado ✓ · cada código se guarda directo en la planilla de inventario.';
   var cola = leer('cola', []), enviados = leer('enviados', 0), recientes = leer('recientes', []);
-  var ultimo = { c: '', t: 0 }, enviando = false, pausado = false, lector = null;
+  var ultimo = { c: '', t: 0 }, enviando = false, pausado = false;
 
   function aviso(t) { var a = $('aviso'); if (!t) { a.style.display = 'none'; return; } a.textContent = t; a.style.display = 'block'; }
   function pintar() {
@@ -140,25 +140,46 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     }).catch(function () {});
   }
 
-  // --- cámara
+  // --- cámara y lectura (ZXing en WebAssembly: lee códigos de barras lineales y QR, también si están chicos o gastados)
+  var video = null, flujo = null, leyendo = false, cuadros = 0;
+  var canvas = document.createElement('canvas'), cx = canvas.getContext('2d', { willReadFrequently: true });
   function pausa(forzar) {
-    if (!lector) return;
-    if (pausado && forzar !== true) { try { lector.resume(); } catch (e) {} pausado = false; $('btnPausa').textContent = 'Pausar cámara'; }
-    else if (!pausado) { try { lector.pause(true); } catch (e) {} pausado = true; $('btnPausa').textContent = 'Reanudar cámara'; }
+    if (forzar === true) pausado = true; else pausado = !pausado;
+    $('btnPausa').textContent = pausado ? 'Reanudar cámara' : 'Pausar cámara';
+    if (video) { try { pausado ? video.pause() : video.play(); } catch (e) {} }
+  }
+  function bucle() {
+    if (!flujo) return;
+    if (!pausado && !leyendo && video && video.readyState >= 2 && video.videoWidth) {
+      leyendo = true;
+      var w = video.videoWidth, h = video.videoHeight, sw = Math.min(w, 1280), sh = Math.round(h * sw / w);
+      canvas.width = sw; canvas.height = sh; cx.drawImage(video, 0, 0, sw, sh);
+      var img = cx.getImageData(0, 0, sw, sh);
+      ZXingWASM.readBarcodes(img, { tryHarder: true, tryRotate: true, tryInvert: true, tryDownscale: true, maxNumberOfSymbols: 1 }).then(function (r) {
+        cuadros++;
+        if (r && r.length && r[0].text) { $('estCam').textContent = 'Leído: ' + r[0].text + ' (' + r[0].format + ')'; agregar(r[0].text); }
+        else if (cuadros % 6 === 0) { $('estCam').textContent = 'Buscando código… acerca o aleja la etiqueta (' + cuadros + ' cuadros)'; }
+      }).catch(function (e) { $('estCam').textContent = 'Error del lector: ' + (e && e.message ? e.message : e); })
+        .then(function () { leyendo = false; });
+    }
+    setTimeout(bucle, 110);
   }
   function iniciar() {
-    if (typeof Html5Qrcode === 'undefined') { aviso('No cargó el lector de códigos. Recarga la página.'); return; }
-    lector = new Html5Qrcode('lector', { verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
-    var ancho = Math.min(window.innerWidth - 32, 420);
-    lector.start({ facingMode: 'environment' }, { fps: 12, qrbox: { width: Math.round(ancho * 0.9), height: Math.round(ancho * 0.45) }, aspectRatio: 1.3 },
-      function (txt) { $('estCam').textContent = 'Leído: ' + txt; agregar(txt); }, function () {})
-      .then(function () { $('estCam').textContent = 'Cámara lista: apunta al código de barras'; $('btnCam').hidden = true; })
+    if (typeof ZXingWASM === 'undefined') { aviso('No cargó el lector de códigos. Recarga la página.'); return; }
+    try { ZXingWASM.prepareZXingModule({ overrides: { locateFile: function (p, pre) { return p.slice(-5) === '.wasm' ? 'lib/zxing/zxing_reader.wasm' : pre + p; } } }); } catch (e) {}
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('estCam').textContent = 'Este navegador no permite usar la cámara.'; return; }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }).then(function (s) {
+      flujo = s; video = document.createElement('video'); video.setAttribute('playsinline', ''); video.muted = true; video.style.width = '100%'; video.srcObject = s;
+      $('lector').textContent = ''; $('lector').appendChild(video);
+      try { s.getVideoTracks()[0].applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {}); } catch (e) {}
+      return video.play();
+    }).then(function () { $('estCam').textContent = 'Cámara lista: apunta al código de barras'; $('btnCam').hidden = true; bucle(); })
       .catch(function (e) { $('estCam').textContent = 'Cámara con problema: ' + (e && e.message ? e.message : e); $('btnCam').hidden = false; aviso('No se pudo abrir la cámara. Permite el acceso a la cámara (Ajustes > Safari > Cámara) y toca "Iniciar cámara".'); });
   }
   try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {}
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { estado(); enviar(); try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {} } });
 
-  $('btnCam').onclick = function () { aviso(''); $('estCam').textContent = 'Cámara: iniciando…'; try { if (lector) lector.clear(); } catch (e) {} iniciar(); };
+  $('btnCam').onclick = function () { aviso(''); $('estCam').textContent = 'Cámara: iniciando…'; try { if (flujo) flujo.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} flujo = null; iniciar(); };
   $('btnPausa').onclick = function () { pausa(); };
   $('btnReenviar').onclick = function () { aviso(''); enviar(); };
   $('btnManual').onclick = function () { agregar($('manual').value); $('manual').value = ''; };

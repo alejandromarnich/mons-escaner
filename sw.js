@@ -1,5 +1,5 @@
 // Guarda la página y el lector para que abra rápido. Las llamadas a la planilla nunca se guardan.
-var V = 'escaner-v2', ARCHIVOS = ['./', 'index.html', 'manifest.json', 'lib/html5-qrcode.min.js'];
+var V = 'escaner-v3', ARCHIVOS = ['./', 'index.html', 'manifest.json', 'lib/zxing/reader.js', 'lib/zxing/zxing_reader.wasm'];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(V).then(function (c) { return c.addAll(ARCHIVOS); })); self.skipWaiting(); });
 self.addEventListener('activate', function (e) { e.waitUntil(caches.keys().then(function (k) { return Promise.all(k.filter(function (x) { return x !== V; }).map(function (x) { return caches.delete(x); })); })); self.clients.claim(); });
 self.addEventListener('fetch', function (e) {
