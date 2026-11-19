@@ -23,6 +23,11 @@ button.p{background:var(--ok);color:#06240f;border-color:var(--ok);font-weight:6
 #aviso{display:none;margin:8px 0;padding:10px 12px;border-radius:10px;background:#3a1d1d;color:#ffd0d0}
 ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
 #conf{display:none}
+#lector{position:relative}
+#flash{position:absolute;inset:0;border:6px solid var(--ok);background:rgba(62,207,142,.35);opacity:0;pointer-events:none;border-radius:10px;transition:opacity .45s}
+#flash.on{opacity:1;transition:none}
+#ult{margin:8px 0;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line);text-align:center;min-height:64px}
+#ult .g{font-size:26px;font-weight:700;letter-spacing:.5px;word-break:break-all}#ult .e{font-size:14px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -37,7 +42,8 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
 <div id="app" hidden>
   <div id="lugar"><span class="m">Lugar actual</span><b id="lugarTxt">…</b></div>
   <div id="aviso"></div>
-  <div id="lector"></div>
+  <div id="ult"><div class="m">Aquí verás cada código leído</div></div>
+  <div style="position:relative"><div id="lector"></div><div id="flash"></div></div>
   <div class="m" id="estCam">Cámara: iniciando…</div>
   <div class="row"><button id="btnCam" hidden>Iniciar cámara</button></div>
   <div class="est"><span>Enviados: <b id="nEnv" class="ok">0</b></span><span>Pendientes: <b id="nPend">0</b></span></div>
@@ -95,11 +101,20 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     guardar('cola', cola); guardar('enviados', enviados); guardar('recientes', recientes.slice(0, 20));
   }
 
-  // --- sonido de confirmación
+  // --- sonido de confirmación (en iPhone el audio se desbloquea con el primer toque; con el interruptor de silencio no suena)
   var ctx = null;
+  function desbloquear() { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {} }
+  ['touchstart', 'click'].forEach(function (ev) { document.addEventListener(ev, desbloquear, { passive: true }); });
+  function destello() { var f = $('flash'); f.classList.add('on'); setTimeout(function () { f.classList.remove('on'); }, 120); }
+  function banner(c, estado) {
+    var u = $('ult'); u.textContent = '';
+    var g = document.createElement('div'); g.className = 'g'; g.textContent = (estado === 'ok' ? '✓ ' : estado === 'error' ? '⚠ ' : '… ') + c;
+    var e = document.createElement('div'); e.className = 'e ' + (estado === 'ok' ? 'ok' : 'warn'); e.textContent = estado === 'ok' ? 'Guardado en la planilla' : estado === 'error' ? 'Pendiente: se reintenta solo' : 'Enviando…';
+    u.appendChild(g); u.appendChild(e);
+  }
   function pitido(ok) {
     try {
-      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      desbloquear();
       var o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination);
       o.frequency.value = ok ? 880 : 300; g.gain.value = 0.15; o.start(); o.stop(ctx.currentTime + 0.12);
     } catch (e) {}
@@ -116,12 +131,12 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     var item = cola[0];
     post(item).then(function (r) {
       if (r && r.ok) {
-        cola.shift(); enviados++; recientes.forEach(function (x) { if (x.id === item.id) x.ok = true; }); aviso('');
+        cola.shift(); enviados++; recientes.forEach(function (x) { if (x.id === item.id) x.ok = true; }); aviso(''); banner(item.c, 'ok');
       } else if (r && r.error === 'cerrado') { aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); pausa(true); enviando = false; pintar(); return; }
       else if (r && r.error === 'clave') { aviso('La clave no es válida. Abre de nuevo el enlace de configuración.'); enviando = false; return; }
-      else { aviso('No se pudo guardar: ' + ((r && r.error) || 'error') + '. Se reintenta solo.'); enviando = false; pintar(); return; }
+      else { aviso('No se pudo guardar: ' + ((r && r.error) || 'error') + '. Se reintenta solo.'); banner(item.c, 'error'); enviando = false; pintar(); return; }
       enviando = false; pintar(); enviar();
-    }).catch(function () { enviando = false; aviso('Sin conexión. Los códigos quedan guardados y se envían solos.'); pintar(); });
+    }).catch(function () { enviando = false; banner(item.c, 'error'); aviso('Sin conexión. Los códigos quedan guardados y se envían solos.'); pintar(); });
   }
   function agregar(c) {
     c = String(c).trim(); if (!c) return;
@@ -130,7 +145,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     ultimo = { c: c, t: ahora };
     var item = { c: c, id: ahora.toString(36) + Math.random().toString(36).slice(2, 8) };
     cola.push(item); recientes.unshift({ c: c, id: item.id, ok: false });
-    pitido(true); pintar(); enviar();
+    pitido(true); destello(); banner(c, 'envio'); pintar(); enviar();
   }
 
   // --- lugar actual (lo elige la app de inventario)
@@ -141,7 +156,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
   }
 
   // --- cámara y lectura (ZXing en WebAssembly: lee códigos de barras lineales y QR, también si están chicos o gastados)
-  var video = null, flujo = null, leyendo = false, cuadros = 0;
+  var video = null, flujo = null, leyendo = false, cuadros = 0, hubo = false;
   var canvas = document.createElement('canvas'), cx = canvas.getContext('2d', { willReadFrequently: true });
   function pausa(forzar) {
     if (forzar === true) pausado = true; else pausado = !pausado;
@@ -156,11 +171,11 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
       canvas.width = sw; canvas.height = sh; cx.drawImage(video, 0, 0, sw, sh);
       var img = cx.getImageData(0, 0, sw, sh);
       ZXingWASM.readBarcodes(img, { tryHarder: true, tryRotate: true, tryInvert: true, tryDownscale: true, maxNumberOfSymbols: 1 }).then(function (r) {
-        cuadros++;
+        cuadros++; hubo = !!(r && r.length && r[0].text);
         if (r && r.length && r[0].text) { $('estCam').textContent = 'Leído: ' + r[0].text + ' (' + r[0].format + ')'; agregar(r[0].text); }
         else if (cuadros % 6 === 0) { $('estCam').textContent = 'Buscando código… acerca o aleja la etiqueta (' + cuadros + ' cuadros)'; }
       }).catch(function (e) { $('estCam').textContent = 'Error del lector: ' + (e && e.message ? e.message : e); })
-        .then(function () { leyendo = false; });
+        .then(function () { setTimeout(function () { leyendo = false; }, hubo ? 900 : 0); });
     }
     setTimeout(bucle, 110);
   }
