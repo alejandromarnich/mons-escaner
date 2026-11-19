@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Escáner Mons">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="manifest" href="manifest.json">
+<title>Escáner Mons</title>
+<style>
+:root{--bg:#111;--fg:#f2f2f2;--mut:#9a9a9a;--ok:#3ecf8e;--warn:#f5a524;--bad:#ff5c5c;--card:#1d1d1d;--line:#2d2d2d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 -apple-system,system-ui,sans-serif;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
+h1{font-size:18px;margin:12px 0 4px}.m{color:var(--mut);font-size:14px}
+#lugar{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}
+#lugar b{display:block;font-size:17px}
+#lector{width:100%;border-radius:10px;overflow:hidden;background:#000;min-height:220px}
+.row{display:flex;gap:8px;margin:8px 0}.row>*{flex:1}
+button,input{font:inherit;min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:0 12px}
+button.p{background:var(--ok);color:#06240f;border-color:var(--ok);font-weight:600}
+.est{display:flex;justify-content:space-between;margin:6px 0;font-size:15px}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+#aviso{display:none;margin:8px 0;padding:10px 12px;border-radius:10px;background:#3a1d1d;color:#ffd0d0}
+ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+#conf{display:none}
+</style>
+</head>
+<body>
+<h1>Escáner Mons</h1>
+<div class="m" id="sub">Cada código se guarda directo en la planilla de inventario.</div>
+
+<div id="conf">
+  <p>Abre el enlace de configuración que te dio Claude (una sola vez). Si lo perdiste, pídelo de nuevo.</p>
+</div>
+
+<div id="app" hidden>
+  <div id="lugar"><span class="m">Lugar actual</span><b id="lugarTxt">…</b></div>
+  <div id="aviso"></div>
+  <div id="lector"></div>
+  <div class="est"><span>Enviados: <b id="nEnv" class="ok">0</b></span><span>Pendientes: <b id="nPend">0</b></span></div>
+  <div class="row"><button id="btnPausa">Pausar cámara</button><button id="btnReenviar">Reenviar pendientes</button></div>
+  <div class="row"><input id="manual" placeholder="O escribe un código" inputmode="text" autocapitalize="characters" autocomplete="off"><button class="p" id="btnManual" style="flex:0 0 96px">Agregar</button></div>
+  <div class="m">Últimos escaneos</div>
+  <ul id="lista"></ul>
+  <div class="m">Para anular un escaneo, usa la app de inventario (Contar → Anular).</div>
+  <div class="row"><button id="btnBorrarConf">Borrar configuración de este teléfono</button></div>
+</div>
+
+<script src="lib/html5-qrcode.min.js"></script>
+<script>
+(function () {
+  var LS = window.localStorage;
+  function leer(k, d) { try { var v = LS.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function guardar(k, v) { try { LS.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function $(id) { return document.getElementById(id); }
+
+  // --- configuración: llega una vez en el enlace (#u=...&t=...) y se guarda en el teléfono
+  var h = location.hash.replace(/^#/, '');
+  if (h) {
+    var p = {}; h.split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
+    if (p.u && p.t) { guardar('cfg', { u: p.u, t: p.t }); }
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  }
+  var cfg = leer('cfg', null);
+  if (!cfg) { $('conf').style.display = 'block'; return; }
+  $('app').hidden = false;
+
+  var cola = leer('cola', []), enviados = leer('enviados', 0), recientes = leer('recientes', []);
+  var ultimo = { c: '', t: 0 }, enviando = false, pausado = false, lector = null;
+
+  function aviso(t) { var a = $('aviso'); if (!t) { a.style.display = 'none'; return; } a.textContent = t; a.style.display = 'block'; }
+  function pintar() {
+    $('nEnv').textContent = enviados; var n = $('nPend'); n.textContent = cola.length; n.className = cola.length ? 'warn' : '';
+    var ul = $('lista'); ul.textContent = '';
+    recientes.slice(0, 8).forEach(function (r) {
+      var li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('span');
+      a.textContent = r.c; b.textContent = r.ok ? '✓' : '…'; b.className = r.ok ? 'ok' : 'warn'; li.appendChild(a); li.appendChild(b); ul.appendChild(li);
+    });
+    guardar('cola', cola); guardar('enviados', enviados); guardar('recientes', recientes.slice(0, 20));
+  }
+
+  // --- sonido de confirmación
+  var ctx = null;
+  function pitido(ok) {
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      var o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = ok ? 880 : 300; g.gain.value = 0.15; o.start(); o.stop(ctx.currentTime + 0.12);
+    } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) {}
+  }
+
+  // --- envío con cola (si no hay internet, se guarda y se reenvía)
+  function post(item) {
+    return fetch(cfg.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ t: cfg.t, c: item.c, id: item.id }) })
+      .then(function (r) { return r.json(); });
+  }
+  function enviar() {
+    if (enviando || !cola.length) return; enviando = true;
+    var item = cola[0];
+    post(item).then(function (r) {
+      if (r && r.ok) {
+        cola.shift(); enviados++; recientes.forEach(function (x) { if (x.id === item.id) x.ok = true; }); aviso('');
+      } else if (r && r.error === 'cerrado') { aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); pausa(true); enviando = false; pintar(); return; }
+      else if (r && r.error === 'clave') { aviso('La clave no es válida. Abre de nuevo el enlace de configuración.'); enviando = false; return; }
+      else { aviso('No se pudo guardar: ' + ((r && r.error) || 'error') + '. Se reintenta solo.'); enviando = false; pintar(); return; }
+      enviando = false; pintar(); enviar();
+    }).catch(function () { enviando = false; aviso('Sin conexión. Los códigos quedan guardados y se envían solos.'); pintar(); });
+  }
+  function agregar(c) {
+    c = String(c).trim(); if (!c) return;
+    var ahora = Date.now();
+    if (c === ultimo.c && ahora - ultimo.t < 3000) return; // lectura doble
+    ultimo = { c: c, t: ahora };
+    var item = { c: c, id: ahora.toString(36) + Math.random().toString(36).slice(2, 8) };
+    cola.push(item); recientes.unshift({ c: c, id: item.id, ok: false });
+    pitido(true); pintar(); enviar();
+  }
+
+  // --- lugar actual (lo elige la app de inventario)
+  function estado() {
+    fetch(cfg.u + (cfg.u.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(cfg.t)).then(function (r) { return r.json(); }).then(function (r) {
+      if (r && r.ok) { $('lugarTxt').textContent = r.lugar || '(sin lugar: elígelo en la app de inventario)'; if (r.cerrado) aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); }
+    }).catch(function () {});
+  }
+
+  // --- cámara
+  function pausa(forzar) {
+    if (!lector) return;
+    if (pausado && forzar !== true) { try { lector.resume(); } catch (e) {} pausado = false; $('btnPausa').textContent = 'Pausar cámara'; }
+    else if (!pausado) { try { lector.pause(true); } catch (e) {} pausado = true; $('btnPausa').textContent = 'Reanudar cámara'; }
+  }
+  function iniciar() {
+    if (typeof Html5Qrcode === 'undefined') { aviso('No cargó el lector de códigos. Recarga la página.'); return; }
+    lector = new Html5Qrcode('lector', { verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+    var ancho = Math.min(window.innerWidth - 32, 420);
+    lector.start({ facingMode: 'environment' }, { fps: 12, qrbox: { width: Math.round(ancho * 0.9), height: Math.round(ancho * 0.45) }, aspectRatio: 1.3 },
+      function (txt) { agregar(txt); }, function () {})
+      .catch(function (e) { aviso('No se pudo abrir la cámara. Permite el acceso a la cámara en Ajustes de Safari. (' + (e && e.message ? e.message : e) + ')'); });
+  }
+  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {}
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { estado(); enviar(); try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {} } });
+
+  $('btnPausa').onclick = function () { pausa(); };
+  $('btnReenviar').onclick = function () { aviso(''); enviar(); };
+  $('btnManual').onclick = function () { agregar($('manual').value); $('manual').value = ''; };
+  $('manual').addEventListener('keydown', function (e) { if (e.key === 'Enter') { $('btnManual').click(); } });
+  $('btnBorrarConf').onclick = function () { if (cola.length && !confirm('Hay ' + cola.length + ' códigos sin enviar. ¿Borrar igual?')) return; try { LS.clear(); } catch (e) {} location.reload(); };
+
+  pintar(); estado(); setInterval(estado, 8000); setInterval(enviar, 5000); iniciar();
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
+})();
+</script>
+</body>
+</html>
