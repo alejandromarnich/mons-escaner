@@ -96,7 +96,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     var ul = $('lista'); ul.textContent = '';
     recientes.slice(0, 8).forEach(function (r) {
       var li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('span');
-      a.textContent = r.c; b.textContent = r.ok ? '✓' : '…'; b.className = r.ok ? 'ok' : 'warn'; li.appendChild(a); li.appendChild(b); ul.appendChild(li);
+      a.textContent = r.c + (r.d ? ' · ' + r.d : ''); b.textContent = r.ok ? '✓' : '…'; b.className = r.ok ? 'ok' : 'warn'; li.appendChild(a); li.appendChild(b); ul.appendChild(li);
     });
     guardar('cola', cola); guardar('enviados', enviados); guardar('recientes', recientes.slice(0, 20));
   }
@@ -106,11 +106,16 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
   function desbloquear() { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {} }
   ['touchstart', 'click'].forEach(function (ev) { document.addEventListener(ev, desbloquear, { passive: true }); });
   function destello() { var f = $('flash'); f.classList.add('on'); setTimeout(function () { f.classList.remove('on'); }, 120); }
-  function banner(c, estado) {
+  function banner(c, estado, r) {
     var u = $('ult'); u.textContent = '';
-    var g = document.createElement('div'); g.className = 'g'; g.textContent = (estado === 'ok' ? '✓ ' : estado === 'error' ? '⚠ ' : '… ') + c;
-    var e = document.createElement('div'); e.className = 'e ' + (estado === 'ok' ? 'ok' : 'warn'); e.textContent = estado === 'ok' ? 'Guardado en la planilla' : estado === 'error' ? 'Pendiente: se reintenta solo' : 'Enviando…';
+    var sub = estado === 'ok' ? 'Guardado en la planilla' : estado === 'error' ? 'Pendiente: se reintenta solo' : 'Enviando…', cls = estado === 'ok' ? 'ok' : 'warn', marca = estado === 'ok' ? '✓ ' : estado === 'error' ? '⚠ ' : '… ';
+    if (estado === 'ok' && r && r.detalle) {
+      sub = r.detalle; if (r.estado === 'RECONOCIDO') { cls = 'ok'; marca = '✓ '; } else if (r.estado === 'POR COMPLETAR') { cls = 'warn'; marca = '◐ '; } else { cls = 'bad'; marca = '⚠ '; }
+    }
+    var g = document.createElement('div'); g.className = 'g'; g.textContent = marca + c;
+    var e = document.createElement('div'); e.className = 'e ' + cls; e.textContent = sub;
     u.appendChild(g); u.appendChild(e);
+    u.style.borderColor = cls === 'ok' ? 'var(--ok)' : cls === 'bad' ? 'var(--bad)' : 'var(--line)';
   }
   function pitido(ok) {
     try {
@@ -131,7 +136,7 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
     var item = cola[0];
     post(item).then(function (r) {
       if (r && r.ok) {
-        cola.shift(); enviados++; recientes.forEach(function (x) { if (x.id === item.id) x.ok = true; }); aviso(''); banner(item.c, 'ok');
+        cola.shift(); enviados++; recientes.forEach(function (x) { if (x.id === item.id) { x.ok = true; x.d = r.detalle || ''; } }); aviso(''); banner(item.c, 'ok', r);
       } else if (r && r.error === 'cerrado') { aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); pausa(true); enviando = false; pintar(); return; }
       else if (r && r.error === 'clave') { aviso('La clave no es válida. Abre de nuevo el enlace de configuración.'); enviando = false; return; }
       else { aviso('No se pudo guardar: ' + ((r && r.error) || 'error') + '. Se reintenta solo.'); banner(item.c, 'error'); enviando = false; pintar(); return; }
