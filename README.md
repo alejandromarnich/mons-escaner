@@ -10,3 +10,12 @@ Reemplaza a las apps de escaneo de pago.
 - Muestra el lugar actual (lo elige la app de inventario) y avisa si el conteo está cerrado.
 
 Sin datos de clientas ni claves en este repositorio.
+
+## Deuda técnica conocida
+1. **Sin pruebas en el teléfono real:** el decodificador se prueba con imágenes generadas; la calidad real depende de luz, foco y de cómo imprime Mons sus etiquetas.
+2. **Lectura en el hilo principal:** ZXing corre en la página; si un teléfono es lento, se nota. Pasarlo a un Web Worker.
+3. **Foco y zoom:** iPhone/Safari no deja controlar el enfoque; si el código está muy cerca, se ve borroso.
+4. **Sin cola persistente robusta:** la cola de envíos vive en `localStorage`; si el navegador la borra, se pierden los pendientes.
+5. **Clave en el teléfono:** la clave del receptor se guarda en `localStorage` y en el QR de configuración. Rotarla si se pierde el teléfono.
+6. **Lector solo de códigos de barras lineales** (decisión del 19-nov): los QR se ignoran.
+7. **Librería incluida (zxing-wasm 3.1.7):** actualizar a mano.
