@@ -291,7 +291,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
         if (!res.ok) { fallo = res.error; return; }
         cola = cola.filter(function (q) { return q.id !== res.id; }); enviados++;
         var x = escaneos.filter(function (e) { return e.id === res.id; })[0];
-        if (x) { x.pend = false; x.fila = res.fila; x.estado = res.estado; x.detalle = res.detalle; x.estilo = res.estilo; x.clave = res.clave || ''; x.lg = ''; }
+        if (x) { x.pend = false; x.fila = res.fila; x.estado = res.estado; x.detalle = res.detalle; x.estilo = res.estilo; x.clave = res.clave || ''; x.sugeridos = res.sugeridos; x.lg = ''; }
         ultimo = { res: res, x: x };
         if (res.terminado) aviso('Ese rack está terminado: este escaneo queda pendiente de confirmar.');
       });
@@ -451,6 +451,8 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   }
   function buscarLocal(q) {
     var n = normCod(q), d = String(q || '').trim().toUpperCase();
+    if (CAT && d.length < 2 && vItem && vItem.sugeridos && vItem.sugeridos.length)   // código de la marca: modelos que ya salieron con él
+      return vItem.sugeridos.map(function (s) { return CAT.filter(function (m) { return m.m === s; })[0]; }).filter(Boolean);
     if (!CAT || d.length < 2) return [];
     var r = CAT.filter(function (m) { return (m.m && m.m.indexOf(n) >= 0) || String(m.c).toUpperCase().indexOf(d) >= 0 || m.d.toUpperCase().indexOf(d) >= 0; });
     r.sort(function (a, b) { return (b.m === n) - (a.m === n); });
@@ -467,6 +469,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     if (buscarDeNuevo !== false) {
       var res = buscarLocal(q); $('vModelos').textContent = '';
       if (res.length === 1 && !sel.modelo && !sel.nuevo && res[0].m === n) sel.modelo = res[0];
+      if (q.length < 2 && res.length) $('vModelos').appendChild(el('li', 'Sugeridos (ya salieron con este código):', 'm s'));
       res.forEach(function (m) {
         var li = el('li', '', 'toca'); li.appendChild(el('span', '', 'd'));
         li.firstChild.appendChild(el('b', m.c || '(sin número)')); li.firstChild.appendChild(document.createTextNode(' · ' + linda(m.d)));
