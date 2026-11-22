@@ -36,25 +36,31 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 #ult .g{font-size:18px;font-weight:600;overflow-wrap:anywhere}#ult .e{font-size:13px;color:var(--mut)}
 .num{background:var(--card);border-radius:10px;padding:10px}.num b{display:block;font-size:24px}
 .pie{position:sticky;bottom:0;background:var(--bg);padding:8px 0}
+.paso{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 4px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0}
+.grid3 button,.grid4 button{padding:0 4px;min-height:44px;font-size:15px}button.existe{border-color:var(--selfg)}
+#teclado{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#1a1a1a;border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:10px 12px calc(env(safe-area-inset-bottom) + 12px);box-shadow:0 -8px 24px rgba(0,0,0,.6)}
+#visor{font:600 26px/1.2 ui-monospace,Menlo,monospace;letter-spacing:1px;background:#000;border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:52px;margin:6px 0 8px;overflow-wrap:anywhere}
+#teclas{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}#teclas.abc{grid-template-columns:repeat(6,1fr)}#teclas button{min-height:54px;font-size:22px;font-weight:600;padding:0}#teclas.abc button{min-height:46px;font-size:18px}
 </style>
 </head>
 <body>
 
 <section id="conf" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v18</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v19</span></div>
   <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
   <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
 </section>
 
 <section id="vNombre" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v18</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v19</span></div>
   <p>¿Quién cuenta con este teléfono? Queda anotado en cada escaneo.</p>
   <input id="inNombre" maxlength="20" placeholder="Alejandro" autocomplete="off" style="width:100%">
   <div class="row"><button class="p" id="btnNombre">Guardar</button></div>
 </section>
 
 <section id="vContar" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v18 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v19 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <div><div class="m s">Tu rack</div><b id="rackTxt">Sin rack</b></div>
     <button class="chico" id="btnCambiar">Cambiar</button>
@@ -63,12 +69,12 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   <div style="position:relative"><div id="lector"></div><div id="mira"></div><div id="flash"></div></div>
   <div class="m s" id="estCam">Cámara: iniciando…</div>
   <div class="row" id="filaCam" hidden><button id="btnCam">Iniciar cámara</button></div>
+  <div class="row"><button id="btnTeclado">⌨ Escribir código</button><button id="btnMas1" disabled>+1 igual</button></div>
   <div id="ult"><div class="m">Apunta la cámara al código de barras</div></div>
+  <div class="row" id="filaPend" hidden style="align-items:center"><b id="nPendV" class="warn" style="flex:1"></b><button class="chico" id="btnResolver">Resolver ahora</button></div>
   <div class="grid2"><button id="fVest" class="sel">Por vestido</button><button id="fEsc">Por escaneo</button></div>
   <ul id="lista"></ul>
   <div class="m s" id="resumen"></div>
-  <div class="row" id="filaManual" hidden><input id="manual" placeholder="Código" autocapitalize="characters" autocomplete="off"><button id="btnManual" style="flex:0 0 96px">Agregar</button></div>
-  <div class="m s"><a href="#" id="lnkManual" style="color:var(--mut)">Escribir un código a mano</a></div>
   <div class="pie"><button class="p" id="btnTerminar" style="width:100%">Terminar rack</button></div>
 </section>
 
@@ -77,7 +83,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   <div class="m s">Local</div><div class="grid2" id="rLocales"></div>
   <div class="m s">Sector</div><div class="grid2" id="rSectores"></div>
   <div class="m s">Rack</div>
-  <input id="inRack" maxlength="20" autocapitalize="characters" autocomplete="off" style="width:100%">
+  <input id="inRack" maxlength="32" autocapitalize="characters" autocomplete="off" style="width:100%">
   <div class="m s" style="margin-top:10px" id="rTitulo">Racks</div>
   <ul id="rLista"></ul>
   <div class="pie"><button class="p" id="btnUsar" style="width:100%">Usar este rack</button></div>
@@ -97,25 +103,23 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 
 <section id="vVincular" hidden>
   <div class="card" style="border-color:var(--warn)"><b class="warn" id="vTitulo">No conozco este código</b><div class="m s" id="vCodigo"></div></div>
-  <div class="m s">Busca el modelo</div>
-  <input id="inBuscar" autocapitalize="characters" autocomplete="off" placeholder="RQ8011" style="width:100%">
+  <div class="paso">1 · Modelo</div>
+  <input id="inBuscar" autocapitalize="characters" autocomplete="off" placeholder="Número de modelo (ej. MQ1877) o nombre" style="width:100%">
   <ul id="vModelos"></ul>
-  <div id="vColores" hidden><div class="m s">Color</div><div class="grid2" id="vColBtns"></div></div>
-  <div id="vTallas" hidden><div class="m s">Talla</div><div class="grid2" id="vTalBtns"></div></div>
-  <div class="row" id="vOtros"><button id="btnOtroCT" hidden>Otro color o talla</button><button id="btnNuevoV">No está: vestido nuevo</button></div>
-  <div class="card" id="vNuevo" hidden>
-    <b id="nTitulo"></b>
-    <div id="nModelo"><input id="nDesc" autocapitalize="characters" autocomplete="off" placeholder="Nombre (ej. Vestido largo satín)" style="width:100%;margin:6px 0">
-      <input id="nMarca" autocapitalize="characters" autocomplete="off" placeholder="Marca (ej. May Queen)" style="width:100%;margin:6px 0">
-      <input id="nCodMod" autocapitalize="characters" autocomplete="off" placeholder="Número de modelo (ej. A1138)" style="width:100%;margin:6px 0"></div>
-    <div class="row"><input id="nColor" autocapitalize="characters" autocomplete="off" placeholder="Color"><input id="nTalla" autocapitalize="characters" autocomplete="off" placeholder="Talla"></div>
-    <button class="p" id="btnCrearV" style="width:100%">Crear y vincular</button>
-  </div>
+  <div id="vMarca" hidden><div class="paso">Marca</div><div class="grid3" id="vMarBtns"></div>
+    <input id="inNomVest" autocapitalize="characters" autocomplete="off" placeholder="Nombre del vestido (opcional)" style="width:100%;margin-top:6px"></div>
+  <div id="vColores" hidden><div class="paso">2 · Color</div><div class="grid3" id="vColBtns"></div></div>
+  <div id="vTallas" hidden><div class="paso">3 · Talla <span style="text-transform:none">(marcadas: las que ya existen)</span></div><div class="grid4" id="vTalBtns"></div></div>
   <div class="pie"><button class="p" id="btnVincular" style="width:100%" hidden></button>
     <div class="row"><button id="btnExacto" hidden>Es etiqueta Mons: solo este color y talla</button></div>
-    <div class="row"><button id="btnDespues">Después (queda por vincular)</button></div></div>
+    <div class="row"><button id="btnDespues">Seguir escaneando (queda por vincular)</button></div></div>
 </section>
 
+<div id="teclado" hidden>
+  <div style="display:flex;justify-content:space-between;align-items:center"><b>Escribir código</b><button class="chico" id="btnTecCerrar">Cerrar</button></div>
+  <div id="visor"></div><div id="teclas"></div>
+  <button class="p" id="btnTecAgregar" style="width:100%;margin-top:8px;min-height:52px" disabled>Agregar</button>
+</div>
 <button id="nueva" hidden style="position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:var(--warn);color:#fff;border:0;border-radius:10px;padding:14px;font-weight:600">Hay una versión nueva del escáner · Toca para actualizar</button>
 <section id="vTerminar" hidden>
   <div class="top"><h1 id="tTitulo">Resumen</h1><button class="chico" id="btnTermVolver">Volver</button></div>
@@ -152,8 +156,8 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   function $(id) { return document.getElementById(id); }
   function el(tag, txt, cls) { var e = document.createElement(tag); if (txt !== undefined) e.textContent = txt; if (cls) e.className = cls; return e; }
   // "CD0234 · ROSE GOLD" → "CD0234 · Rose Gold": las palabras con números (modelos) quedan en mayúsculas
-  function linda(s) { return String(s || '').replace(/[0-9A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/g, function (w) { return /\d/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }); }
-  var VERSION = 18;
+  function linda(s) { return String(s || '').replace(/[0-9A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/g, function (w) { return /\d/.test(w) || /^(X{0,3}[SL]|M)$/i.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }); }
+  var VERSION = 19;
   function esMons(c) { return /^510\d{7}$/.test(String(c || '')); }   // etiqueta Mons: siempre un color y talla
 
   // --- configuración: llega una vez en el enlace (#u=...&t=...) y se guarda en el teléfono
@@ -167,7 +171,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   }
   var cfg = leer('cfg', null);
   var vistas = ['conf', 'vNombre', 'vContar', 'vRack', 'vRackVer', 'vVincular', 'vTerminar', 'vAjustes'], vista = '';
-  function mostrar(v) { vista = v; vistas.forEach(function (x) { $(x).hidden = x !== v; }); window.scrollTo(0, 0); }
+  function mostrar(v) { vista = v; vistas.forEach(function (x) { $(x).hidden = x !== v; }); if ($('teclado')) $('teclado').hidden = true; window.scrollTo(0, 0); }
   if (!cfg) {
     mostrar('conf');
     $('btnPegar').onclick = function () {
@@ -186,7 +190,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 
   var cola = leer('cola', []), enviados = leer('enviados', 0), rack = leer('rack', ''), escaneos = [], filtro = leer('filtro', 'vest');
   var enviando = false, pausado = false, cerrado = false;
-  var despues = {}; // códigos que dejaste para después: no se vuelve a abrir solo en esta sesión
+  var ultimoIgual = null; // último vestido reconocido: "+1 igual" agrega otro igual sin volver a escanear
 
   function aviso(t) { var a = $('aviso'); if (!t) { a.style.display = 'none'; return; } a.textContent = t; a.style.display = 'block'; }
   function pintarCuenta() { $('nEnv').textContent = enviados; $('nPend').textContent = cola.length; $('nPend').className = cola.length ? 'warn' : ''; guardar('cola', cola); guardar('enviados', enviados); }
@@ -247,6 +251,9 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
       var b = el('button', 'Anular', 'chico'); b.onclick = function () { anular(x); }; der.appendChild(b);
       li.appendChild(der); ul.appendChild(li);
     }
+    var pend = mios.filter(function (x) { return !x.pend && (x.estado === 'DESCONOCIDO' || x.estado === 'COMPLETAR'); });
+    $('filaPend').hidden = !pend.length; $('nPendV').textContent = pend.length + (pend.length === 1 ? ' por resolver en este rack' : ' por resolver en este rack');
+    $('btnResolver').onclick = function () { if (pend.length) abrirVincular(pend[pend.length - 1]); };
     if (filtro === 'vest') Object.keys(vest).forEach(function (k) { var g = vest[k]; filaLi(g[0], nombreDe(g[0]), g.length); });
     else mios.forEach(function (x) { filaLi(x, nombreDe(x), x.doble ? 2 : 0); });
   }
@@ -274,7 +281,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   function enviar() {
     if (enviando || !cola.length) return; enviando = true;
     var grupo = cola.slice(0, 20);
-    post({ accion: 'guardar', items: grupo.map(function (q) { return { c: q.c, id: q.id, ts: q.ts, lg: q.lg }; }) }).then(function (r) {
+    post({ accion: 'guardar', items: grupo.map(function (q) { return { c: q.c, id: q.id, ts: q.ts, lg: q.lg, v: q.v || '' }; }) }).then(function (r) {
       enviando = false;
       if (!r || !r.ok) {
         var e = r && r.error;
@@ -282,34 +289,33 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
         else aviso('No se pudo guardar: ' + textoError(e) + '. Se reintenta solo.');
         pintarCuenta(); return;
       }
-      var fallo = '', vinc = null, ultimo = null;
+      var fallo = '', ultimo = null;
       r.resultados.forEach(function (res) {
         if (!res.ok) { fallo = res.error; return; }
         cola = cola.filter(function (q) { return q.id !== res.id; }); enviados++;
         var x = escaneos.filter(function (e) { return e.id === res.id; })[0];
-        if (x) { x.pend = false; x.fila = res.fila; x.estado = res.estado; x.detalle = res.detalle; x.estilo = res.estilo; x.lg = ''; }
+        if (x) { x.pend = false; x.fila = res.fila; x.estado = res.estado; x.detalle = res.detalle; x.estilo = res.estilo; x.clave = res.clave || ''; x.lg = ''; }
         ultimo = { res: res, x: x };
-        if (x && (res.estado === 'DESCONOCIDO' || res.estado === 'COMPLETAR') && !despues[x.c] && !vinc) vinc = x;
         if (res.terminado) aviso('Ese rack está terminado: este escaneo queda pendiente de confirmar.');
       });
       if (ultimo && ultimo.x) {
         var u = ultimo.res, c = ultimo.x.c;
-        if (u.estado === 'RECONOCIDO') { banner(linda(u.detalle), c, 'ok', u.n); pitido(true); }
-        else { banner(c, u.estado === 'COMPLETAR' ? 'Falta color y talla' : 'Código desconocido', 'warn', u.n); pitido(false); }
+        if (u.estado === 'RECONOCIDO') { banner(linda(u.detalle), c + ' · +1 suma otro igual', 'ok', u.n); pitido(true); ultimoIgual = { c: c, clave: u.clave, nombre: u.detalle }; }
+        else { banner(c, (u.estado === 'COMPLETAR' ? 'Falta color y talla' : 'Código desconocido') + ' · sigue escaneando, se resuelve después', 'warn', u.n); pitido(false); ultimoIgual = null; }
+        $('btnMas1').disabled = !ultimoIgual;
       }
-      if (fallo) aviso('No se pudo guardar: ' + textoError(fallo) + '. Se reintenta solo.'); else if (!vinc) aviso('');
+      if (fallo) aviso('No se pudo guardar: ' + textoError(fallo) + '. Se reintenta solo.'); else aviso('');
       pintarCuenta(); pintarLista();
-      if (vinc && vista === 'vContar') abrirVincular(vinc);
       if (!fallo) enviar();
     }).catch(function () { enviando = false; aviso('Sin conexión. Los códigos quedan guardados y se envían solos.'); pintarCuenta(); });
   }
-  function agregar(c) {
+  function agregar(c, v) {
     c = String(c).trim(); if (!c) return;
     if (/^https?:|#u=|[\s]{2,}/i.test(c) || c.length > 40) { $('estCam').textContent = 'Ignorado: no parece un código de barras'; return; }
     if (!rack) { pitido(false); banner(c, 'No se guardó: primero elige el rack', 'bad'); aviso('Elige un rack (botón Cambiar) antes de escanear.'); return; }
-    var ahora = Date.now(), item = { c: c, id: ahora.toString(36) + Math.random().toString(36).slice(2, 8), ts: ahora, lg: rack };
+    var ahora = Date.now(), item = { c: c, id: ahora.toString(36) + Math.random().toString(36).slice(2, 8), ts: ahora, lg: rack, v: v || '' };
     cola.push(item);
-    escaneos.unshift({ id: item.id, c: c, pend: true, lg: rack, hora: new Date(ahora).toTimeString().slice(0, 5) });
+    escaneos.unshift({ id: item.id, c: c, pend: true, lg: rack, clave: v || '', hora: new Date(ahora).toTimeString().slice(0, 5) });
     destello(); banner(c, 'Enviando…', '');
     pintarCuenta(); pintarLista(); enviar();
   }
@@ -383,7 +389,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     $('dTitulo').textContent = linda(x.rack);
     $('dEstado').textContent = linda(selLocal + ' · ' + selSector) + (x.mio ? ' · es tu rack' : x.ocupante ? ' · también lo cuenta ' + x.ocupante : x.terminado ? ' · terminado' : '');
     $('dEsc').textContent = '…'; $('dVest').textContent = '…'; $('dLista').textContent = ''; $('dAvisos').hidden = true;
-    $('btnDetUsar').hidden = false; $('btnDetRenombrar').hidden = !!x.ocupante;
+    $('btnDetUsar').hidden = false; $('btnDetRenombrar').hidden = false;
     $('btnDetUsar').textContent = x.mio ? 'Seguir escaneando aquí' : x.terminado ? 'Reabrir y escanear' : x.ocupante ? 'Contar junto con ' + x.ocupante : 'Usar ' + linda(x.rack);
     post({ accion: 'rack', rack: x.lugar }).then(function (r) {
       if (!r || !r.ok || dRack !== x) return;
@@ -415,106 +421,136 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   $('btnRackVolver').onclick = function () { mostrar('vContar'); };
   $('nueva').onclick = function () { if (cola.length && !confirm('Hay ' + cola.length + ' códigos sin enviar: quedan guardados y se envían después. ¿Actualizar?')) return; location.reload(); };
 
-  // --- vincular un código desconocido (o completar color y talla de un modelo)
-  var vItem = null, vModelo = null, vColor = '', vClave = '', tBuscar = 0, vEditar = false;
+  // --- vincular, completar o corregir un vestido: un solo camino (modelo → color → talla → Listo)
+  // El catálogo se guarda en el teléfono y se busca ahí mismo (al instante); se refresca al abrir y al crear un vestido.
+  var CAT = leer('cat', null), TALLAS = ['2', '4', '6', '8', '10', '12', '14', '16', '18', '20', 'XS', 'S', 'M', 'L', 'XL', '2XL'];
+  function cargarCatalogo() {
+    return post({ accion: 'catalogo' }).then(function (r) { if (r && r.ok) { CAT = r.modelos; guardar('cat', CAT); } }).catch(function () {});
+  }
+  function normCod(v) { var t = String(v || '').toUpperCase().replace(/[\s\-_.]/g, ''); return /^\d+$/.test(t) ? t.replace(/^0+(?=\d)/, '') : t.replace(/^([A-Z]+)0+(\d)/, '$1$2'); }
+  function ordenTalla(t) { var u = String(t).toUpperCase(), i = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', 'STAND'].indexOf(u); if (i >= 0) return 1000 + i; var n = parseFloat(u); return isNaN(n) ? 2000 : n; }
+  var vItem = null, vEditar = false, sel = {}, tBuscar = 0;
+  function abrirVincular(x) {
+    vItem = x; vEditar = false; sel = { modelo: null, nuevo: false, marca: '', color: '', talla: '' };
+    $('vTitulo').textContent = x.estado === 'COMPLETAR' ? 'Falta color y talla' : 'No conozco este código';
+    $('vCodigo').textContent = x.c + (esMons(x.c) && x.estado === 'DESCONOCIDO' ? ' · código Mons: elige su color y talla' : ' · ya quedó contado');
+    $('btnDespues').textContent = 'Seguir escaneando (queda por vincular)';
+    $('inBuscar').value = x.estilo || ''; $('inNomVest').value = ''; mostrar('vVincular');
+    if (!CAT) cargarCatalogo().then(pintarVincular);
+    pintarVincular(true);
+    if (!x.estilo) setTimeout(function () { $('inBuscar').focus(); }, 50);
+  }
   /** Corregir un vestido ya escaneado (otro color, talla o modelo). */
   function abrirEditar(x) {
     abrirVincular({ c: x.c, fila: x.fila, estado: 'EDITAR', estilo: String(x.detalle || '').split(' · ')[0] });
     vEditar = true; $('vTitulo').textContent = 'Corregir este vestido'; $('vCodigo').textContent = x.c + ' · ahora: ' + linda(x.detalle);
     $('btnDespues').textContent = 'Cancelar';
   }
-  function abrirVincular(x) {
-    vItem = x; vModelo = null; vColor = ''; vClave = ''; vEditar = false; $('btnDespues').textContent = 'Después (queda por vincular)';
-    $('vTitulo').textContent = x.estado === 'COMPLETAR' ? 'Falta color y talla' : 'No conozco este código';
-    $('vCodigo').textContent = x.c + (esMons(x.c) && x.estado === 'DESCONOCIDO' ? ' · código Mons: elige su color y talla' : ' · ya quedó contado');
-    $('vModelos').textContent = ''; $('vColores').hidden = true; $('vTallas').hidden = true; $('btnVincular').hidden = true;
-    $('btnOtroCT').hidden = true; $('vNuevo').hidden = true; ['nDesc', 'nMarca', 'nCodMod', 'nColor', 'nTalla'].forEach(function (k) { $(k).value = ''; });
-    $('inBuscar').value = x.estilo || ''; mostrar('vVincular');
-    if (x.estilo) buscar(); else setTimeout(function () { $('inBuscar').focus(); }, 50);
+  function buscarLocal(q) {
+    var n = normCod(q), d = String(q || '').trim().toUpperCase();
+    if (!CAT || d.length < 2) return [];
+    var r = CAT.filter(function (m) { return (m.m && m.m.indexOf(n) >= 0) || String(m.c).toUpperCase().indexOf(d) >= 0 || m.d.toUpperCase().indexOf(d) >= 0; });
+    r.sort(function (a, b) { return (b.m === n) - (a.m === n); });
+    return r.slice(0, 8);
   }
-  function buscar() {
-    var q = $('inBuscar').value.trim(); if (q.length < 2) { $('vModelos').textContent = ''; return; }
-    post({ accion: 'buscar', q: q }).then(function (r) {
-      if (!r || !r.ok || q !== $('inBuscar').value.trim()) return;
-      $('vModelos').textContent = '';
-      if (!r.modelos.length) $('vModelos').appendChild(el('li', 'Sin resultados', 'm'));
-      r.modelos.forEach(function (m) {
-        var li = el('li', '', 'toca'); li.appendChild(el('span', (m.modelo ? m.modelo + ' · ' : '') + linda(m.descripcion), 'd'));
-        if (vModelo === m) li.style.color = 'var(--selfg)';
-        li.onclick = function () { vModelo = m; vColor = ''; vClave = ''; pintarVariantes(); };
+  /** Botones en grilla; "Otro…" pide el texto. */
+  function botones(caja, items, elegido, pick, otro, marcados) {
+    caja.textContent = '';
+    items.forEach(function (x) { var b = el('button', linda(x), String(x).toUpperCase() === String(elegido).toUpperCase() ? 'sel' : (marcados && marcados.indexOf(String(x).toUpperCase()) >= 0 ? 'existe' : '')); b.onclick = function () { pick(x); }; caja.appendChild(b); });
+    if (otro) { var b = el('button', 'Otro…'); b.onclick = function () { var v = prompt(otro); if (v && v.trim()) pick(v.trim().toUpperCase()); }; caja.appendChild(b); }
+  }
+  function pintarVincular(buscarDeNuevo) {
+    var q = $('inBuscar').value.trim(), n = normCod(q);
+    if (buscarDeNuevo !== false) {
+      var res = buscarLocal(q); $('vModelos').textContent = '';
+      if (res.length === 1 && !sel.modelo && !sel.nuevo && res[0].m === n) sel.modelo = res[0];
+      res.forEach(function (m) {
+        var li = el('li', '', 'toca'); li.appendChild(el('span', '', 'd'));
+        li.firstChild.appendChild(el('b', m.c || '(sin número)')); li.firstChild.appendChild(document.createTextNode(' · ' + linda(m.d)));
+        li.appendChild(el('span', linda(m.b), 'm s'));
+        if (sel.modelo === m) li.style.color = 'var(--selfg)';
+        li.onclick = function () { sel = { modelo: m, nuevo: false, marca: '', color: '', talla: '' }; pintarVincular(); };
         $('vModelos').appendChild(li);
       });
-      if (r.modelos.length === 1) { vModelo = r.modelos[0]; pintarVariantes(); }
-    }).catch(function () {});
-  }
-  $('inBuscar').oninput = function () { clearTimeout(tBuscar); tBuscar = setTimeout(buscar, 400); };
-  function pintarVariantes() {
-    var colores = []; vModelo.variantes.forEach(function (v) { if (colores.indexOf(v.color) < 0) colores.push(v.color); });
-    if (colores.length === 1) vColor = colores[0];
-    $('vColores').hidden = false; $('vColBtns').textContent = '';
-    colores.forEach(function (c) { var b = el('button', linda(c), c === vColor ? 'sel' : ''); b.onclick = function () { vColor = c; vClave = ''; pintarVariantes(); }; $('vColBtns').appendChild(b); });
-    $('vTallas').hidden = !vColor; $('vTalBtns').textContent = '';
-    vModelo.variantes.filter(function (v) { return v.color === vColor; }).forEach(function (v) {
-      var b = el('button', v.talla, v.clave === vClave ? 'sel' : ''); b.onclick = function () { vClave = v.clave; pintarVariantes(); }; $('vTalBtns').appendChild(b);
-    });
-    var va = vModelo.variantes.filter(function (v) { return v.clave === vClave; })[0];
-    $('btnOtroCT').hidden = false; if (nModo === 'otro') $('nTitulo').textContent = 'Otro color o talla de ' + (vModelo.modelo || linda(vModelo.descripcion));
-    var aModelo = modoVinculo() === 'modelo';   // etiqueta de proveedor: se vincula al modelo
-    $('btnVincular').hidden = !va; $('btnExacto').hidden = !(va && aModelo);
-    var nom = (vModelo.modelo || linda(vModelo.descripcion)) + ' ' + linda(va ? va.color : '') + ' ' + (va ? va.talla : '');
-    if (va) $('btnVincular').textContent = vEditar ? 'Guardar · ' + nom : aModelo ? 'Vincular al modelo ' + nom : (vItem.estado === 'DESCONOCIDO' ? 'Vincular · ' : 'Elegir · ') + nom;
+      if (q.length >= 2 && !res.some(function (m) { return m.m === n; })) {
+        var li = el('li', '', 'toca'); li.appendChild(el('span', '＋ Modelo nuevo ' + q.toUpperCase(), 'd')); li.appendChild(el('span', 'no está', 'm s'));
+        if (sel.nuevo) li.style.color = 'var(--selfg)';
+        li.onclick = function () { sel = { modelo: null, nuevo: true, marca: '', color: '', talla: '' }; pintarVincular(); };
+        $('vModelos').appendChild(li);
+      }
+      if (q.length >= 2 && !CAT) $('vModelos').appendChild(el('li', 'Cargando el catálogo…', 'm'));
+    }
+    var m = sel.modelo;
+    // marca (solo modelo nuevo)
+    $('vMarca').hidden = !sel.nuevo;
+    if (sel.nuevo) {
+      var cuenta = {}; (CAT || []).forEach(function (x) { cuenta[x.b] = (cuenta[x.b] || 0) + 1; });
+      var marcas = Object.keys(cuenta).filter(Boolean).sort(function (a, b) { return cuenta[b] - cuenta[a]; }).slice(0, 5);
+      botones($('vMarBtns'), marcas, sel.marca, function (x) { sel.marca = x; pintarVincular(false); }, 'Marca');
+    }
+    // color
+    $('vColores').hidden = !(m || sel.nuevo);
+    if (m || sel.nuevo) {
+      var colores = [];
+      if (m) m.v.forEach(function (v) { if (colores.indexOf(v[1]) < 0) colores.push(v[1]); });
+      else { var cc = {}; (CAT || []).forEach(function (x) { x.v.forEach(function (v) { cc[v[1]] = (cc[v[1]] || 0) + 1; }); }); colores = Object.keys(cc).sort(function (a, b) { return cc[b] - cc[a]; }).slice(0, 8); }
+      if (sel.color && colores.map(function (c) { return c.toUpperCase(); }).indexOf(sel.color.toUpperCase()) < 0) colores.push(sel.color);
+      if (m && colores.length === 1 && !sel.color) sel.color = colores[0];
+      botones($('vColBtns'), colores, sel.color, function (x) { sel.color = x; sel.talla = ''; pintarVincular(false); }, 'Color');
+    }
+    // talla: las de siempre + las que ya existen de ese color (marcadas)
+    $('vTallas').hidden = !sel.color;
+    if (sel.color) {
+      var existen = m ? m.v.filter(function (v) { return v[1].toUpperCase() === sel.color.toUpperCase(); }).map(function (v) { return String(v[2]).toUpperCase(); }) : [];
+      var tallas = TALLAS.slice(); existen.concat(sel.talla ? [String(sel.talla).toUpperCase()] : []).forEach(function (t) { if (tallas.indexOf(t) < 0) tallas.push(t); });
+      tallas.sort(function (a, b) { return ordenTalla(a) - ordenTalla(b); });
+      botones($('vTalBtns'), tallas, sel.talla, function (x) { sel.talla = x; pintarVincular(false); }, 'Talla', existen);
+    }
+    // botón final
+    var listo = !!(sel.color && sel.talla && (m || (sel.nuevo && sel.marca)));
+    var nom = (m ? m.c || linda(m.d) : q.toUpperCase()) + ' · ' + linda(sel.color) + ' · ' + sel.talla;
+    $('btnVincular').hidden = !listo; $('btnVincular').disabled = false;
+    if (listo) $('btnVincular').textContent = (vEditar ? 'Guardar · ' : 'Listo · ') + nom;
+    $('btnExacto').hidden = !(listo && modoVinculo() === 'modelo');
   }
   /** Código desconocido: al modelo si es etiqueta de proveedor; a su color y talla si es código Mons o el modelo no tiene número. */
-  function modoVinculo() { return vItem && vItem.estado === 'DESCONOCIDO' && vModelo && vModelo.modelo && !esMons(vItem.c) ? 'modelo' : 'exacto'; }
-  function guardarEdicion(extra) {
-    var d = { accion: 'editar', c: vItem.c, fila: vItem.fila }; for (var k in extra) d[k] = extra[k];
-    return post(d).then(function (r) {
-      if (r && r.ok) { banner(linda(r.detalle), vItem.c + ' · corregido', 'ok'); mostrar('vContar'); cargarRack();
-        if (r.terminado) alert('Este rack ya estaba terminado: termínalo de nuevo para confirmar el cambio.'); return true; }
-      alert('No se pudo corregir: ' + textoError(r && r.error)); return false;
-    }).catch(function () { alert('Sin conexión: no se pudo corregir.'); return false; });
+  function modoVinculo() {
+    if (!vItem || vItem.estado !== 'DESCONOCIDO' || esMons(vItem.c)) return 'exacto';
+    return (sel.modelo && sel.modelo.m) || (sel.nuevo && esCodigoModelo($('inBuscar').value)) ? 'modelo' : 'exacto';
   }
-  function vincularA(modo) {
-    if (!vItem || !vClave) return;
-    $('btnVincular').disabled = true;
-    post({ accion: 'vincular', c: vItem.c, clave: vClave, fila: vItem.fila, modo: modo }).then(function (r) {
-      $('btnVincular').disabled = false;
-      if (r && r.ok) { banner(linda(r.detalle), vItem.c, 'ok'); mostrar('vContar'); cargarRack(); }
-      else alert('No se pudo vincular: ' + textoError(r && r.error));
-    }).catch(function () { $('btnVincular').disabled = false; alert('Sin conexión: no se pudo vincular.'); });
+  function esCodigoModelo(q) { return /^[A-Za-z0-9]+[\-.]?[A-Za-z0-9]*$/.test(String(q || '').trim()) && /\d/.test(q); }
+  /** Lo elegido: clave si el color y talla ya existen; si no, el vestido nuevo que hay que crear. */
+  function elegido() {
+    var m = sel.modelo;
+    if (m) {
+      var v = m.v.filter(function (x) { return x[1].toUpperCase() === sel.color.toUpperCase() && String(x[2]).toUpperCase() === String(sel.talla).toUpperCase(); })[0];
+      if (v) return { clave: v[0] };
+      return { nuevo: { estilo: m.m, marca: m.b, descripcion: m.d, color: sel.color, talla: sel.talla } };
+    }
+    var q = $('inBuscar').value.trim(), cod = esCodigoModelo(q);
+    return { nuevo: { estilo: cod ? q.toUpperCase() : '', marca: sel.marca, descripcion: $('inNomVest').value.trim() || (cod ? '' : q), color: sel.color, talla: sel.talla } };
   }
-  $('btnVincular').onclick = function () {
-    if (!vEditar) { vincularA(modoVinculo()); return; }
-    if (!vClave) return; $('btnVincular').disabled = true;
-    guardarEdicion({ clave: vClave }).then(function () { $('btnVincular').disabled = false; });
-  };
-  $('btnExacto').onclick = function () { if (confirm('¿Es una etiqueta Mons? El código quedará amarrado solo a este color y talla.')) vincularA('exacto'); };
-  // --- color y talla (o vestido) que no está en el catálogo: se crea y se vincula
-  var nModo = '';
-  function abrirNuevo(modo) {
-    nModo = modo; $('vNuevo').hidden = false; $('nModelo').hidden = modo === 'otro';
-    $('nTitulo').textContent = modo === 'otro' ? 'Otro color o talla de ' + (vModelo.modelo || linda(vModelo.descripcion)) : 'Vestido nuevo';
-    if (modo === 'nuevo' && !$('nDesc').value) $('nDesc').value = $('inBuscar').value.trim();
-    setTimeout(function () { $(modo === 'otro' ? 'nColor' : 'nDesc').focus(); }, 50);
+  function terminarVincular(r, nuevo) {
+    if (nuevo) cargarCatalogo();
+    if (r.clave) ultimoIgual = { c: vItem.c, clave: r.clave, nombre: r.detalle }; else ultimoIgual = null;
+    $('btnMas1').disabled = !ultimoIgual;
+    banner(linda(r.detalle), vItem.c + (vEditar ? ' · corregido' : nuevo ? ' · nuevo' : ''), 'ok'); mostrar('vContar'); cargarRack();
+    if (vEditar && r.terminado) alert('Este rack ya estaba terminado: termínalo de nuevo para confirmar el cambio.');
   }
-  $('btnOtroCT').onclick = function () { if (vModelo) abrirNuevo('otro'); };
-  $('btnNuevoV').onclick = function () { abrirNuevo('nuevo'); };
-  $('btnCrearV').onclick = function () {
+  function enviarVinculo(modo) {
     if (!vItem) return;
-    var nv = { color: $('nColor').value.trim(), talla: $('nTalla').value.trim() };
-    if (nModo === 'otro' && vModelo) { nv.estilo = vModelo.modelo || ''; nv.marca = vModelo.marca; nv.descripcion = vModelo.descripcion; }
-    else { nv.descripcion = $('nDesc').value.trim(); nv.marca = $('nMarca').value.trim(); nv.estilo = $('nCodMod').value.trim(); }
-    if (!nv.descripcion) { alert('Escribe el nombre del vestido.'); return; }
-    if (!nv.color || !nv.talla) { alert('Escribe el color y la talla.'); return; }
-    $('btnCrearV').disabled = true;
-    if (vEditar) { guardarEdicion({ nuevo: nv }).then(function () { $('btnCrearV').disabled = false; }); return; }
-    post({ accion: 'vincular', c: vItem.c, fila: vItem.fila, nuevo: nv, modo: esMons(vItem.c) ? 'exacto' : 'modelo' }).then(function (r) {
-      $('btnCrearV').disabled = false;
-      if (r && r.ok) { banner(linda(r.detalle), vItem.c + ' · nuevo', 'ok'); mostrar('vContar'); cargarRack(); }
-      else alert('No se pudo crear: ' + textoError(r && r.error));
-    }).catch(function () { $('btnCrearV').disabled = false; alert('Sin conexión: no se pudo crear.'); });
-  };
-  $('btnDespues').onclick = function () { if (vItem && !vEditar) despues[vItem.c] = true; mostrar('vContar'); };
+    var e = elegido(), d = vEditar ? { accion: 'editar', c: vItem.c, fila: vItem.fila } : { accion: 'vincular', c: vItem.c, fila: vItem.fila, modo: modo || modoVinculo() };
+    if (e.clave) d.clave = e.clave; else d.nuevo = e.nuevo;
+    $('btnVincular').disabled = true; $('btnVincular').textContent = 'Guardando…';
+    post(d).then(function (r) {
+      if (r && r.ok) terminarVincular(r, !!e.nuevo);
+      else { alert('No se pudo guardar: ' + textoError(r && r.error)); pintarVincular(false); }
+    }).catch(function () { alert('Sin conexión: no se pudo guardar.'); pintarVincular(false); });
+  }
+  $('inBuscar').oninput = function () { sel = { modelo: null, nuevo: false, marca: '', color: '', talla: '' }; clearTimeout(tBuscar); tBuscar = setTimeout(pintarVincular, 150); };
+  $('btnVincular').onclick = function () { enviarVinculo(); };
+  $('btnExacto').onclick = function () { if (confirm('¿Es una etiqueta Mons? El código quedará amarrado solo a este color y talla.')) enviarVinculo('exacto'); };
+  $('btnDespues').onclick = function () { mostrar('vContar'); };
 
   // --- terminar rack = confirmar
   var siguiente = '';
@@ -615,9 +651,24 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 
   // --- botones generales
   $('btnCam').onclick = function () { aviso(''); $('estCam').textContent = 'Cámara: iniciando…'; try { if (flujo) flujo.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} flujo = null; iniciar(); };
-  $('lnkManual').onclick = function (e) { e.preventDefault(); $('filaManual').hidden = !$('filaManual').hidden; if (!$('filaManual').hidden) $('manual').focus(); };
-  $('btnManual').onclick = function () { agregar($('manual').value); $('manual').value = ''; };
-  $('manual').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btnManual').click(); });
+  var tecla = '', abc = false;
+  function pintarTeclado() {
+    $('visor').textContent = tecla || ' '; $('btnTecAgregar').disabled = !tecla;
+    var t = $('teclas'); t.textContent = ''; t.className = abc ? 'abc' : '';
+    var ks = abc ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('') : ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    ks.forEach(function (k) { var b = el('button', k); b.onclick = function () { tecla += k; pintarTeclado(); }; t.appendChild(b); });
+    var bm = el('button', abc ? '123' : 'ABC'); bm.style.fontSize = '16px'; bm.onclick = function () { abc = !abc; pintarTeclado(); }; t.appendChild(bm);
+    if (!abc) { var b0 = el('button', '0'); b0.onclick = function () { tecla += '0'; pintarTeclado(); }; t.appendChild(b0); }
+    var bb = el('button', '⌫'); bb.onclick = function () { tecla = tecla.slice(0, -1); pintarTeclado(); }; t.appendChild(bb);
+  }
+  $('btnTeclado').onclick = function () { tecla = ''; abc = false; $('teclado').hidden = false; pintarTeclado(); };
+  $('btnTecCerrar').onclick = function () { $('teclado').hidden = true; };
+  $('btnTecAgregar').onclick = function () { if (!tecla) return; agregar(tecla); tecla = ''; $('teclado').hidden = true; };
+  $('btnMas1').onclick = function () { if (ultimoIgual) agregar(ultimoIgual.c, ultimoIgual.clave); };
+  document.addEventListener('keydown', function (e) {   // teclado físico (o lector USB) también sirve con el panel abierto
+    if ($('teclado').hidden) return;
+    if (/^[0-9a-zA-Z]$/.test(e.key)) { tecla += e.key.toUpperCase(); pintarTeclado(); } else if (e.key === 'Backspace') { tecla = tecla.slice(0, -1); pintarTeclado(); } else if (e.key === 'Enter') $('btnTecAgregar').click();
+  });
   $('btnAjustes').onclick = function () { pintarCuenta(); mostrar('vAjustes'); };
   $('btnAjVolver').onclick = function () { mostrar('vContar'); };
   $('btnZona').onclick = function () { verZona = !verZona; $('zonaVista').hidden = !verZona; $('btnZona').textContent = verZona ? 'Ocultar zona analizada' : 'Ver zona analizada'; };
@@ -636,7 +687,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   function arrancar() {
     mostrar('vContar'); $('quien').textContent = nombre; ponerRack(rack); pintarCuenta();
     if (arrancado) return; arrancado = true;
-    estado(); cargarRack(); setInterval(estado, 15000); setInterval(enviar, 5000); iniciar();
+    estado(); cargarRack(); cargarCatalogo(); setInterval(estado, 15000); setInterval(enviar, 5000); iniciar();
   }
   if (!nombre) mostrar('vNombre'); else arrancar();
   if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
