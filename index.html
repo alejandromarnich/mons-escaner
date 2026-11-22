@@ -83,6 +83,18 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   <div class="pie"><button class="p" id="btnUsar" style="width:100%">Usar este rack</button></div>
 </section>
 
+<section id="vRackVer" hidden>
+  <div class="top"><h1 id="dTitulo">Rack</h1><button class="chico" id="btnDetVolver">Volver</button></div>
+  <div class="m s" id="dEstado"></div>
+  <div class="grid2"><div class="num"><span class="m s">Escaneos</span><b id="dEsc">…</b></div><div class="num"><span class="m s">Vestidos</span><b id="dVest">…</b></div></div>
+  <ul id="dLista"></ul>
+  <div class="card" id="dAvisos" hidden style="border-color:var(--warn)"></div>
+  <div class="pie">
+    <button class="p" id="btnDetUsar" style="width:100%">Usar este rack</button>
+    <div class="row"><button id="btnDetRenombrar">Cambiar nombre</button></div>
+  </div>
+</section>
+
 <section id="vVincular" hidden>
   <div class="card" style="border-color:var(--warn)"><b class="warn" id="vTitulo">No conozco este código</b><div class="m s" id="vCodigo"></div></div>
   <div class="m s">Busca el modelo</div>
@@ -139,7 +151,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     if (enApp) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
   }
   var cfg = leer('cfg', null);
-  var vistas = ['conf', 'vNombre', 'vContar', 'vRack', 'vVincular', 'vTerminar', 'vAjustes'], vista = '';
+  var vistas = ['conf', 'vNombre', 'vContar', 'vRack', 'vRackVer', 'vVincular', 'vTerminar', 'vAjustes'], vista = '';
   function mostrar(v) { vista = v; vistas.forEach(function (x) { $(x).hidden = x !== v; }); window.scrollTo(0, 0); }
   if (!cfg) {
     mostrar('conf');
@@ -323,7 +335,8 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
       var li = el('li'), est = x.mio ? 'tú' : x.ocupante ? 'lo cuenta ' + x.ocupante : x.terminado ? 'terminado' : '';
       li.appendChild(el('span', linda(x.rack), 'd'));
       li.appendChild(el('span', est, 'm s ' + (x.terminado ? 'ok' : x.ocupante ? 'warn' : '')));
-      if (!x.ocupante) { li.className = 'toca'; li.onclick = function () { $('inRack').value = linda(x.rack); }; }
+      li.className = 'toca'; li.onclick = function () { abrirDetalle(x); };
+      li.appendChild(el('span', '›', 'm'));
       $('rLista').appendChild(li);
     });
     $('btnUsar').textContent = 'Usar ' + ($('inRack').value || 'este rack');
@@ -345,6 +358,43 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     usarRack(selLocal, selSector, n.toUpperCase());
   };
   $('btnCambiar').onclick = abrirRack;
+
+  // --- ver qué hay en un rack, usarlo o cambiarle el nombre
+  var dRack = null;
+  function abrirDetalle(x) {
+    dRack = x; mostrar('vRackVer');
+    $('dTitulo').textContent = linda(x.rack);
+    $('dEstado').textContent = linda(selLocal + ' · ' + selSector) + (x.mio ? ' · es tu rack' : x.ocupante ? ' · lo cuenta ' + x.ocupante : x.terminado ? ' · terminado' : '');
+    $('dEsc').textContent = '…'; $('dVest').textContent = '…'; $('dLista').textContent = ''; $('dAvisos').hidden = true;
+    $('btnDetUsar').hidden = !!x.ocupante; $('btnDetRenombrar').hidden = !!x.ocupante;
+    $('btnDetUsar').textContent = x.mio ? 'Seguir escaneando aquí' : x.terminado ? 'Reabrir y escanear' : 'Usar ' + linda(x.rack);
+    post({ accion: 'rack', rack: x.lugar }).then(function (r) {
+      if (!r || !r.ok || dRack !== x) return;
+      var s = r.resumen; $('dEsc').textContent = s.escaneos; $('dVest').textContent = s.vestidos.length;
+      if (!s.escaneos) $('dLista').appendChild(el('li', 'Vacío: aún no tiene escaneos', 'm'));
+      s.vestidos.forEach(function (v) { var li = el('li'); li.appendChild(el('span', linda(v.descripcion + ' · ' + v.color + ' · ' + v.talla), 'd')); li.appendChild(el('b', String(v.cantidad))); $('dLista').appendChild(li); });
+      var av = []; if (s.porVincular) av.push(s.porVincular + ' por vincular'); if (s.porCompletar) av.push(s.porCompletar + ' sin color y talla'); if (s.dobles) av.push(s.dobles + ' posible lectura doble');
+      if (av.length) { $('dAvisos').hidden = false; $('dAvisos').textContent = ''; $('dAvisos').appendChild(el('b', av.join(' · '), 'warn')); }
+    }).catch(function () { $('dEsc').textContent = '?'; $('dLista').appendChild(el('li', 'Sin conexión: no se pudo cargar.', 'm')); });
+  }
+  $('btnDetVolver').onclick = function () { abrirRack(); };
+  $('btnDetUsar').onclick = function () {
+    if (!dRack) return;
+    if (dRack.mio) { mostrar('vContar'); return; }
+    if (cola.length) { alert('Hay ' + cola.length + ' códigos sin enviar. Espera a que se envíen antes de cambiar de rack.'); return; }
+    if (dRack.terminado) { if (confirm('¿Reabrir ' + linda(dRack.rack) + ' para escanear de nuevo? Al terminarlo se vuelve a confirmar.')) usarRack(selLocal, selSector, dRack.rack, true); return; }
+    usarRack(selLocal, selSector, dRack.rack);
+  };
+  $('btnDetRenombrar').onclick = function () {
+    if (!dRack) return;
+    var n = prompt('Nuevo nombre para ' + linda(dRack.rack) + ' (ej. Rack 5, Vitrina):', linda(dRack.rack));
+    if (n === null) return; n = n.trim().toUpperCase(); if (!n || n === dRack.rack) return;
+    post({ accion: 'renombrar', rack: dRack.lugar, nombre: n }).then(function (r) {
+      if (!r || !r.ok) { alert('No se pudo cambiar el nombre: ' + textoError(r && r.error)); return; }
+      if (dRack.mio || dRack.lugar === rack) ponerRack(r.rack);
+      var p = r.rack.split(' · '); abrirDetalle({ lugar: r.rack, rack: p[p.length - 1], mio: dRack.mio, terminado: dRack.terminado, ocupante: '' });
+    }).catch(function () { alert('Sin conexión: no se pudo cambiar el nombre.'); });
+  };
   $('btnRackVolver').onclick = function () { mostrar('vContar'); };
 
   // --- vincular un código desconocido (o completar color y talla de un modelo)
