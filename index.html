@@ -41,20 +41,20 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 <body>
 
 <section id="conf" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v14</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v15</span></div>
   <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
   <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
 </section>
 
 <section id="vNombre" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v14</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v15</span></div>
   <p>¿Quién cuenta con este teléfono? Queda anotado en cada escaneo.</p>
   <input id="inNombre" maxlength="20" placeholder="Alejandro" autocomplete="off" style="width:100%">
   <div class="row"><button class="p" id="btnNombre">Guardar</button></div>
 </section>
 
 <section id="vContar" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v14 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v15 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <div><div class="m s">Tu rack</div><b id="rackTxt">Sin rack</b></div>
     <button class="chico" id="btnCambiar">Cambiar</button>
@@ -332,7 +332,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     $('rTitulo').textContent = sec.racks.length ? 'Racks de ' + linda(selSector) : 'Aún no hay racks en ' + linda(selSector);
     $('rLista').textContent = '';
     sec.racks.forEach(function (x) {
-      var li = el('li'), est = x.mio ? 'tú' : x.ocupante ? 'lo cuenta ' + x.ocupante : x.terminado ? 'terminado' : '';
+      var li = el('li'), est = x.mio ? 'tú' : x.ocupante ? 'con ' + x.ocupante : x.terminado ? 'terminado' : '';
       li.appendChild(el('span', linda(x.rack), 'd'));
       li.appendChild(el('span', est, 'm s ' + (x.terminado ? 'ok' : x.ocupante ? 'warn' : '')));
       li.className = 'toca'; li.onclick = function () { abrirDetalle(x); };
@@ -364,10 +364,10 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   function abrirDetalle(x) {
     dRack = x; mostrar('vRackVer');
     $('dTitulo').textContent = linda(x.rack);
-    $('dEstado').textContent = linda(selLocal + ' · ' + selSector) + (x.mio ? ' · es tu rack' : x.ocupante ? ' · lo cuenta ' + x.ocupante : x.terminado ? ' · terminado' : '');
+    $('dEstado').textContent = linda(selLocal + ' · ' + selSector) + (x.mio ? ' · es tu rack' : x.ocupante ? ' · también lo cuenta ' + x.ocupante : x.terminado ? ' · terminado' : '');
     $('dEsc').textContent = '…'; $('dVest').textContent = '…'; $('dLista').textContent = ''; $('dAvisos').hidden = true;
-    $('btnDetUsar').hidden = !!x.ocupante; $('btnDetRenombrar').hidden = !!x.ocupante;
-    $('btnDetUsar').textContent = x.mio ? 'Seguir escaneando aquí' : x.terminado ? 'Reabrir y escanear' : 'Usar ' + linda(x.rack);
+    $('btnDetUsar').hidden = false; $('btnDetRenombrar').hidden = !!x.ocupante;
+    $('btnDetUsar').textContent = x.mio ? 'Seguir escaneando aquí' : x.terminado ? 'Reabrir y escanear' : x.ocupante ? 'Contar junto con ' + x.ocupante : 'Usar ' + linda(x.rack);
     post({ accion: 'rack', rack: x.lugar }).then(function (r) {
       if (!r || !r.ok || dRack !== x) return;
       var s = r.resumen; $('dEsc').textContent = s.escaneos; $('dVest').textContent = s.vestidos.length;
@@ -467,7 +467,8 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   };
   function confirmarRack() {
     return post({ accion: 'terminar', rack: rack }).then(function (r) {
-      if (r && r.ok) { banner(linda(rack.split(' · ').pop()) + ' confirmado', r.confirmados + ' líneas al inventario', 'ok'); return true; }
+      if (r && r.ok) { banner(linda(rack.split(' · ').pop()) + ' confirmado', r.confirmados + ' líneas al inventario', 'ok');
+        if (r.otros) alert(r.otros + ' sigue en este rack. Si escanea algo más, terminen el rack de nuevo para confirmarlo.'); return true; }
       alert('No se pudo confirmar: ' + textoError(r && r.error)); return false;
     }).catch(function () { alert('Sin conexión: no se pudo confirmar.'); return false; });
   }
