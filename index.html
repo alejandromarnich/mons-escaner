@@ -41,20 +41,20 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 <body>
 
 <section id="conf" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v15</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v16</span></div>
   <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
   <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
 </section>
 
 <section id="vNombre" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v15</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v16</span></div>
   <p>¿Quién cuenta con este teléfono? Queda anotado en cada escaneo.</p>
   <input id="inNombre" maxlength="20" placeholder="Alejandro" autocomplete="off" style="width:100%">
   <div class="row"><button class="p" id="btnNombre">Guardar</button></div>
 </section>
 
 <section id="vContar" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v15 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v16 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <div><div class="m s">Tu rack</div><b id="rackTxt">Sin rack</b></div>
     <button class="chico" id="btnCambiar">Cambiar</button>
@@ -380,7 +380,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
       if (!r || !r.ok || dRack !== x) return;
       var s = r.resumen; $('dEsc').textContent = s.escaneos; $('dVest').textContent = s.vestidos.length;
       if (!s.escaneos) $('dLista').appendChild(el('li', 'Vacío: aún no tiene escaneos', 'm'));
-      s.vestidos.forEach(function (v) { var li = el('li'); li.appendChild(el('span', linda(v.descripcion + ' · ' + v.color + ' · ' + v.talla), 'd')); li.appendChild(el('b', String(v.cantidad))); $('dLista').appendChild(li); });
+      s.vestidos.forEach(function (v) { var li = el('li'); li.appendChild(el('span', linda((v.modelo || v.descripcion) + ' · ' + v.color + ' · ' + v.talla), 'd')); li.appendChild(el('b', String(v.cantidad))); $('dLista').appendChild(li); });
       var av = []; if (s.porVincular) av.push(s.porVincular + ' por vincular'); if (s.porCompletar) av.push(s.porCompletar + ' sin color y talla'); if (s.dobles) av.push(s.dobles + ' posible lectura doble');
       if (av.length) { $('dAvisos').hidden = false; $('dAvisos').textContent = ''; $('dAvisos').appendChild(el('b', av.join(' · '), 'warn')); }
     }).catch(function () { $('dEsc').textContent = '?'; $('dLista').appendChild(el('li', 'Sin conexión: no se pudo cargar.', 'm')); });
@@ -494,7 +494,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     post({ accion: 'rack', rack: rack }).then(function (r) {
       if (!r || !r.ok) { alert('No se pudo cargar el resumen: ' + textoError(r && r.error)); mostrar('vContar'); return; }
       var s = r.resumen; $('tEsc').textContent = s.escaneos; $('tVest').textContent = s.vestidos.length;
-      s.vestidos.forEach(function (v) { var li = el('li'); li.appendChild(el('span', linda(v.descripcion + ' · ' + v.color + ' · ' + v.talla), 'd')); li.appendChild(el('b', String(v.cantidad))); $('tLista').appendChild(li); });
+      s.vestidos.forEach(function (v) { var li = el('li'); li.appendChild(el('span', linda((v.modelo || v.descripcion) + ' · ' + v.color + ' · ' + v.talla), 'd')); li.appendChild(el('b', String(v.cantidad))); $('tLista').appendChild(li); });
       var av = []; if (s.porVincular) av.push(s.porVincular + ' por vincular'); if (s.porCompletar) av.push(s.porCompletar + ' sin color y talla'); if (s.dobles) av.push(s.dobles + ' posible lectura doble');
       if (av.length) { $('tAvisos').hidden = false; $('tAvisos').textContent = ''; $('tAvisos').appendChild(el('b', av.join(' · '), 'warn')); $('tAvisos').appendChild(el('div', 'Se confirma lo demás; eso queda pendiente.', 'm s')); }
     }).catch(function () { alert('Sin conexión: no se pudo cargar el resumen.'); mostrar('vContar'); });
