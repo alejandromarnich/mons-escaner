@@ -46,20 +46,20 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 <body>
 
 <section id="conf" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v21</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v22</span></div>
   <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
   <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
 </section>
 
 <section id="vNombre" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v21</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v22</span></div>
   <p>¿Quién cuenta con este teléfono? Queda anotado en cada escaneo.</p>
   <input id="inNombre" maxlength="20" placeholder="Alejandro" autocomplete="off" style="width:100%">
   <div class="row"><button class="p" id="btnNombre">Guardar</button></div>
 </section>
 
 <section id="vContar" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v21 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v22 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <div><div class="m s">Tu rack</div><b id="rackTxt">Sin rack</b></div>
     <button class="chico" id="btnCambiar">Cambiar</button>
@@ -73,7 +73,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     <button class="abc" id="abcManual">ABC</button><button class="p" id="btnManual" style="flex:0 0 96px">Agregar</button></div>
   <div id="ult"><div class="m">Apunta la cámara al código de barras</div></div>
   <div class="row" id="filaPend" hidden style="align-items:center"><b id="nPendV" class="warn" style="flex:1"></b><button class="chico" id="btnResolver">Resolver ahora</button></div>
-  <div class="grid2"><button id="fVest" class="sel">Por vestido</button><button id="fEsc">Por escaneo</button></div>
+  <div class="grid2" style="grid-template-columns:repeat(3,1fr)"><button id="fVest" class="sel">Por vestido</button><button id="fPer">Por persona</button><button id="fEsc">Por escaneo</button></div>
   <ul id="lista"></ul>
   <div class="m s" id="resumen"></div>
   <div class="pie"><button class="p" id="btnTerminar" style="width:100%">Terminar rack</button></div>
@@ -154,7 +154,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   function el(tag, txt, cls) { var e = document.createElement(tag); if (txt !== undefined) e.textContent = txt; if (cls) e.className = cls; return e; }
   // "CD0234 · ROSE GOLD" → "CD0234 · Rose Gold": las palabras con números (modelos) quedan en mayúsculas
   function linda(s) { return String(s || '').replace(/[0-9A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/g, function (w) { return /\d/.test(w) || /^(X{0,3}[SL]|M)$/i.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }); }
-  var VERSION = 21;
+  var VERSION = 22;
   function esMons(c) { return /^510\d{7}$/.test(String(c || '')); }   // etiqueta Mons: siempre un color y talla
 
   // --- configuración: llega una vez en el enlace (#u=...&t=...) y se guarda en el teléfono
@@ -235,7 +235,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     var vest = {}, nVest = 0;
     mios.forEach(function (x) { var k = x.clave || ('?' + x.c); if (!vest[k]) { vest[k] = []; nVest++; } vest[k].push(x); });
     $('resumen').textContent = rack ? 'En este rack: ' + mios.length + (mios.length === 1 ? ' escaneo · ' : ' escaneos · ') + nVest + (nVest === 1 ? ' vestido' : ' vestidos') : '';
-    $('fVest').className = filtro === 'vest' ? 'sel' : ''; $('fEsc').className = filtro === 'esc' ? 'sel' : '';
+    $('fVest').className = filtro === 'vest' ? 'sel' : ''; $('fEsc').className = filtro === 'esc' ? 'sel' : ''; $('fPer').className = filtro === 'per' ? 'sel' : '';
     function nombreDe(x) { return x.estado === 'RECONOCIDO' ? linda(x.detalle) : x.c + (x.pend ? ' · enviando…' : ''); }
     function filaLi(x, txt, n) {
       var li = el('li'), d = el('span', txt, 'd');
@@ -252,10 +252,21 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     $('filaPend').hidden = !pend.length; $('nPendV').textContent = pend.length + (pend.length === 1 ? ' por resolver en este rack' : ' por resolver en este rack');
     $('btnResolver').onclick = function () { if (pend.length) abrirVincular(pend[pend.length - 1]); };
     if (filtro === 'vest') Object.keys(vest).forEach(function (k) { var g = vest[k]; filaLi(g[0], nombreDe(g[0]), g.length); });
+    else if (filtro === 'per') {   // separado por quién escaneó (dos personas en el mismo rack)
+      var gente = {}, orden = [];
+      mios.forEach(function (x) { var q = x.quien || nombre; if (!gente[q]) { gente[q] = []; orden.push(q); } gente[q].push(x); });
+      orden.sort(function (a, b) { return (b === nombre) - (a === nombre); });
+      orden.forEach(function (q) {
+        var h = el('li'); h.appendChild(el('b', (q === nombre ? 'Tú (' + q + ')' : q) + ' · ' + gente[q].length + (gente[q].length === 1 ? ' prenda' : ' prendas'))); h.style.background = 'var(--card)'; h.style.padding = '8px'; ul.appendChild(h);
+        var g = {}, ks = []; gente[q].forEach(function (x) { var k = x.clave || ('?' + x.c); if (!g[k]) { g[k] = []; ks.push(k); } g[k].push(x); });
+        ks.forEach(function (k) { filaLi(g[k][0], nombreDe(g[k][0]), g[k].length); });
+      });
+    }
     else mios.forEach(function (x) { filaLi(x, nombreDe(x), x.doble ? 2 : 0); });
   }
   $('fVest').onclick = function () { filtro = 'vest'; guardar('filtro', filtro); pintarLista(); };
   $('fEsc').onclick = function () { filtro = 'esc'; guardar('filtro', filtro); pintarLista(); };
+  $('fPer').onclick = function () { filtro = 'per'; guardar('filtro', filtro); pintarLista(); };
 
   // --- aviso al leer: destello (el iPhone no deja vibrar desde una página web)
   var ctx = null, sonido = leer('sonido', false);
