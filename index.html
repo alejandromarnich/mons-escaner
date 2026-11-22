@@ -159,6 +159,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 
   var cola = leer('cola', []), enviados = leer('enviados', 0), rack = leer('rack', ''), escaneos = [], filtro = leer('filtro', 'vest');
   var enviando = false, pausado = false, cerrado = false;
+  var despues = {}; // códigos que dejaste para después: no se vuelve a abrir solo en esta sesión
 
   function aviso(t) { var a = $('aviso'); if (!t) { a.style.display = 'none'; return; } a.textContent = t; a.style.display = 'block'; }
   function pintarCuenta() { $('nEnv').textContent = enviados; $('nPend').textContent = cola.length; $('nPend').className = cola.length ? 'warn' : ''; guardar('cola', cola); guardar('enviados', enviados); }
@@ -240,26 +241,37 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   }
 
   // --- envío con cola (si no hay internet, se guarda y se reenvía)
+  // La cola se envía en grupos de hasta 20: cada llamada a Google tarda unos segundos, así que de a uno se atrasaría.
   function enviar() {
     if (enviando || !cola.length) return; enviando = true;
-    var item = cola[0];
-    post({ accion: 'guardar', c: item.c, id: item.id, ts: item.ts, lg: item.lg }).then(function (r) {
+    var grupo = cola.slice(0, 20);
+    post({ accion: 'guardar', items: grupo.map(function (q) { return { c: q.c, id: q.id, ts: q.ts, lg: q.lg }; }) }).then(function (r) {
       enviando = false;
-      if (r && r.ok) {
-        cola.shift(); enviados++; aviso('');
-        var x = escaneos.filter(function (e) { return e.id === item.id; })[0];
-        if (x) { x.pend = false; x.fila = r.fila; x.estado = r.estado; x.detalle = r.detalle; x.estilo = r.estilo; x.lg = ''; }
-        if (r.estado === 'RECONOCIDO') { banner(linda(r.detalle), item.c, 'ok', r.n); pitido(true); }
-        else { banner(item.c, r.estado === 'COMPLETAR' ? 'Falta color y talla' : 'Código desconocido', 'warn', r.n); pitido(false); }
-        if (r.terminado) aviso('Ese rack está terminado: este escaneo queda pendiente de confirmar.');
-        pintarCuenta(); pintarLista();
-        if (x && (r.estado === 'DESCONOCIDO' || r.estado === 'COMPLETAR') && vista === 'vContar' && !despues[item.c]) abrirVincular(x);
-        enviar(); return;
+      if (!r || !r.ok) {
+        var e = r && r.error;
+        if (e === 'cerrado') { cerrado = true; aviso('El conteo está cerrado. Los códigos quedan guardados en el teléfono.'); }
+        else aviso('No se pudo guardar: ' + textoError(e) + '. Se reintenta solo.');
+        pintarCuenta(); return;
       }
-      var e = r && r.error;
-      if (e === 'cerrado') { cerrado = true; aviso('El conteo está cerrado. Los códigos quedan guardados en el teléfono.'); }
-      else aviso('No se pudo guardar: ' + textoError(e) + '. Se reintenta solo.');
-      pintarCuenta();
+      var fallo = '', vinc = null, ultimo = null;
+      r.resultados.forEach(function (res) {
+        if (!res.ok) { fallo = res.error; return; }
+        cola = cola.filter(function (q) { return q.id !== res.id; }); enviados++;
+        var x = escaneos.filter(function (e) { return e.id === res.id; })[0];
+        if (x) { x.pend = false; x.fila = res.fila; x.estado = res.estado; x.detalle = res.detalle; x.estilo = res.estilo; x.lg = ''; }
+        ultimo = { res: res, x: x };
+        if (x && (res.estado === 'DESCONOCIDO' || res.estado === 'COMPLETAR') && !despues[x.c] && !vinc) vinc = x;
+        if (res.terminado) aviso('Ese rack está terminado: este escaneo queda pendiente de confirmar.');
+      });
+      if (ultimo && ultimo.x) {
+        var u = ultimo.res, c = ultimo.x.c;
+        if (u.estado === 'RECONOCIDO') { banner(linda(u.detalle), c, 'ok', u.n); pitido(true); }
+        else { banner(c, u.estado === 'COMPLETAR' ? 'Falta color y talla' : 'Código desconocido', 'warn', u.n); pitido(false); }
+      }
+      if (fallo) aviso('No se pudo guardar: ' + textoError(fallo) + '. Se reintenta solo.'); else if (!vinc) aviso('');
+      pintarCuenta(); pintarLista();
+      if (vinc && vista === 'vContar') abrirVincular(vinc);
+      if (!fallo) enviar();
     }).catch(function () { enviando = false; aviso('Sin conexión. Los códigos quedan guardados y se envían solos.'); pintarCuenta(); });
   }
   function agregar(c) {
@@ -383,7 +395,6 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
       else alert('No se pudo vincular: ' + textoError(r && r.error));
     }).catch(function () { $('btnVincular').disabled = false; alert('Sin conexión: no se pudo vincular.'); });
   };
-  var despues = {}; // códigos que dejaste para después: no se vuelve a abrir solo en esta sesión
   $('btnDespues').onclick = function () { if (vItem) despues[vItem.c] = true; mostrar('vContar'); };
 
   // --- terminar rack = confirmar
