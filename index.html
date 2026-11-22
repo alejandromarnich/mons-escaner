@@ -41,20 +41,20 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 <body>
 
 <section id="conf" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v17</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v18</span></div>
   <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
   <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
 </section>
 
 <section id="vNombre" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v17</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v18</span></div>
   <p>¿Quién cuenta con este teléfono? Queda anotado en cada escaneo.</p>
   <input id="inNombre" maxlength="20" placeholder="Alejandro" autocomplete="off" style="width:100%">
   <div class="row"><button class="p" id="btnNombre">Guardar</button></div>
 </section>
 
 <section id="vContar" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v17 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v18 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <div><div class="m s">Tu rack</div><b id="rackTxt">Sin rack</b></div>
     <button class="chico" id="btnCambiar">Cambiar</button>
@@ -116,9 +116,11 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     <div class="row"><button id="btnDespues">Después (queda por vincular)</button></div></div>
 </section>
 
+<button id="nueva" hidden style="position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:var(--warn);color:#fff;border:0;border-radius:10px;padding:14px;font-weight:600">Hay una versión nueva del escáner · Toca para actualizar</button>
 <section id="vTerminar" hidden>
   <div class="top"><h1 id="tTitulo">Resumen</h1><button class="chico" id="btnTermVolver">Volver</button></div>
-  <div class="grid2"><div class="num"><span class="m s">Escaneos</span><b id="tEsc">0</b></div><div class="num"><span class="m s">Vestidos</span><b id="tVest">0</b></div></div>
+  <div class="grid2"><div class="num"><span class="m s">Prendas</span><b id="tEsc">0</b></div><div class="num"><span class="m s">Distintas</span><b id="tVest">0</b></div></div>
+  <div class="card" style="border-color:var(--warn)"><b class="warn">Aún no está en el inventario.</b><div class="m s">Revisa la lista y toca el botón de abajo para confirmar.</div></div>
   <ul id="tLista"></ul>
   <div class="card" id="tAvisos" hidden style="border-color:var(--warn)"></div>
   <div class="m s">Para corregir una cantidad, vuelve y anula el escaneo que sobra.</div>
@@ -149,7 +151,10 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   function guardar(k, v) { try { LS.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function $(id) { return document.getElementById(id); }
   function el(tag, txt, cls) { var e = document.createElement(tag); if (txt !== undefined) e.textContent = txt; if (cls) e.className = cls; return e; }
-  function linda(s) { return String(s || '').toLowerCase().replace(/(^|\s|·)([a-záéíóúñ])/g, function (m, a, b) { return a + b.toUpperCase(); }); }
+  // "CD0234 · ROSE GOLD" → "CD0234 · Rose Gold": las palabras con números (modelos) quedan en mayúsculas
+  function linda(s) { return String(s || '').replace(/[0-9A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/g, function (w) { return /\d/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }); }
+  var VERSION = 18;
+  function esMons(c) { return /^510\d{7}$/.test(String(c || '')); }   // etiqueta Mons: siempre un color y talla
 
   // --- configuración: llega una vez en el enlace (#u=...&t=...) y se guarda en el teléfono
   function leerHash(t) { var q = {}; t.split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); }); return q; }
@@ -208,6 +213,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
       if (!r || !r.ok) return;
       cerrado = !!r.cerrado;
       if (cerrado) aviso('El conteo está cerrado. Se reabre en la app de inventario.');
+      if (r.vEscaner && r.vEscaner > VERSION) $('nueva').hidden = false;
       if ((r.rack || '') !== rack) { ponerRack(r.rack); cargarRack(); }
     }).catch(function () {});
   }
@@ -237,6 +243,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
       li.appendChild(d);
       var der = el('span', '', 'm s'); der.style.display = 'flex'; der.style.gap = '8px'; der.style.alignItems = 'center';
       if (filtro === 'esc' && x.hora) der.appendChild(el('span', x.hora));
+      if (x.fila && !x.pend && x.estado === 'RECONOCIDO') { var be = el('button', 'Editar', 'chico'); be.onclick = function () { abrirEditar(x); }; der.appendChild(be); }
       var b = el('button', 'Anular', 'chico'); b.onclick = function () { anular(x); }; der.appendChild(b);
       li.appendChild(der); ul.appendChild(li);
     }
@@ -406,13 +413,20 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     }).catch(function () { alert('Sin conexión: no se pudo cambiar el nombre.'); });
   };
   $('btnRackVolver').onclick = function () { mostrar('vContar'); };
+  $('nueva').onclick = function () { if (cola.length && !confirm('Hay ' + cola.length + ' códigos sin enviar: quedan guardados y se envían después. ¿Actualizar?')) return; location.reload(); };
 
   // --- vincular un código desconocido (o completar color y talla de un modelo)
-  var vItem = null, vModelo = null, vColor = '', vClave = '', tBuscar = 0;
+  var vItem = null, vModelo = null, vColor = '', vClave = '', tBuscar = 0, vEditar = false;
+  /** Corregir un vestido ya escaneado (otro color, talla o modelo). */
+  function abrirEditar(x) {
+    abrirVincular({ c: x.c, fila: x.fila, estado: 'EDITAR', estilo: String(x.detalle || '').split(' · ')[0] });
+    vEditar = true; $('vTitulo').textContent = 'Corregir este vestido'; $('vCodigo').textContent = x.c + ' · ahora: ' + linda(x.detalle);
+    $('btnDespues').textContent = 'Cancelar';
+  }
   function abrirVincular(x) {
-    vItem = x; vModelo = null; vColor = ''; vClave = '';
+    vItem = x; vModelo = null; vColor = ''; vClave = ''; vEditar = false; $('btnDespues').textContent = 'Después (queda por vincular)';
     $('vTitulo').textContent = x.estado === 'COMPLETAR' ? 'Falta color y talla' : 'No conozco este código';
-    $('vCodigo').textContent = x.c + ' · ya quedó contado';
+    $('vCodigo').textContent = x.c + (esMons(x.c) && x.estado === 'DESCONOCIDO' ? ' · código Mons: elige su color y talla' : ' · ya quedó contado');
     $('vModelos').textContent = ''; $('vColores').hidden = true; $('vTallas').hidden = true; $('btnVincular').hidden = true;
     $('btnOtroCT').hidden = true; $('vNuevo').hidden = true; ['nDesc', 'nMarca', 'nCodMod', 'nColor', 'nTalla'].forEach(function (k) { $(k).value = ''; });
     $('inBuscar').value = x.estilo || ''; mostrar('vVincular');
@@ -445,9 +459,20 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     });
     var va = vModelo.variantes.filter(function (v) { return v.clave === vClave; })[0];
     $('btnOtroCT').hidden = false; if (nModo === 'otro') $('nTitulo').textContent = 'Otro color o talla de ' + (vModelo.modelo || linda(vModelo.descripcion));
-    var aModelo = vItem && vItem.estado === 'DESCONOCIDO' && !!vModelo.modelo;   // etiqueta de proveedor: se vincula al modelo
+    var aModelo = modoVinculo() === 'modelo';   // etiqueta de proveedor: se vincula al modelo
     $('btnVincular').hidden = !va; $('btnExacto').hidden = !(va && aModelo);
-    if (va) $('btnVincular').textContent = (aModelo ? 'Vincular al modelo ' + vModelo.modelo + ' · ' : 'Elegir · ' + (vModelo.modelo || linda(vModelo.descripcion)) + ' ') + linda(va.color) + ' ' + va.talla;
+    var nom = (vModelo.modelo || linda(vModelo.descripcion)) + ' ' + linda(va ? va.color : '') + ' ' + (va ? va.talla : '');
+    if (va) $('btnVincular').textContent = vEditar ? 'Guardar · ' + nom : aModelo ? 'Vincular al modelo ' + nom : (vItem.estado === 'DESCONOCIDO' ? 'Vincular · ' : 'Elegir · ') + nom;
+  }
+  /** Código desconocido: al modelo si es etiqueta de proveedor; a su color y talla si es código Mons o el modelo no tiene número. */
+  function modoVinculo() { return vItem && vItem.estado === 'DESCONOCIDO' && vModelo && vModelo.modelo && !esMons(vItem.c) ? 'modelo' : 'exacto'; }
+  function guardarEdicion(extra) {
+    var d = { accion: 'editar', c: vItem.c, fila: vItem.fila }; for (var k in extra) d[k] = extra[k];
+    return post(d).then(function (r) {
+      if (r && r.ok) { banner(linda(r.detalle), vItem.c + ' · corregido', 'ok'); mostrar('vContar'); cargarRack();
+        if (r.terminado) alert('Este rack ya estaba terminado: termínalo de nuevo para confirmar el cambio.'); return true; }
+      alert('No se pudo corregir: ' + textoError(r && r.error)); return false;
+    }).catch(function () { alert('Sin conexión: no se pudo corregir.'); return false; });
   }
   function vincularA(modo) {
     if (!vItem || !vClave) return;
@@ -458,7 +483,11 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
       else alert('No se pudo vincular: ' + textoError(r && r.error));
     }).catch(function () { $('btnVincular').disabled = false; alert('Sin conexión: no se pudo vincular.'); });
   }
-  $('btnVincular').onclick = function () { vincularA('modelo'); };
+  $('btnVincular').onclick = function () {
+    if (!vEditar) { vincularA(modoVinculo()); return; }
+    if (!vClave) return; $('btnVincular').disabled = true;
+    guardarEdicion({ clave: vClave }).then(function () { $('btnVincular').disabled = false; });
+  };
   $('btnExacto').onclick = function () { if (confirm('¿Es una etiqueta Mons? El código quedará amarrado solo a este color y talla.')) vincularA('exacto'); };
   // --- color y talla (o vestido) que no está en el catálogo: se crea y se vincula
   var nModo = '';
@@ -478,20 +507,21 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     if (!nv.descripcion) { alert('Escribe el nombre del vestido.'); return; }
     if (!nv.color || !nv.talla) { alert('Escribe el color y la talla.'); return; }
     $('btnCrearV').disabled = true;
-    post({ accion: 'vincular', c: vItem.c, fila: vItem.fila, nuevo: nv, modo: 'modelo' }).then(function (r) {
+    if (vEditar) { guardarEdicion({ nuevo: nv }).then(function () { $('btnCrearV').disabled = false; }); return; }
+    post({ accion: 'vincular', c: vItem.c, fila: vItem.fila, nuevo: nv, modo: esMons(vItem.c) ? 'exacto' : 'modelo' }).then(function (r) {
       $('btnCrearV').disabled = false;
       if (r && r.ok) { banner(linda(r.detalle), vItem.c + ' · nuevo', 'ok'); mostrar('vContar'); cargarRack(); }
       else alert('No se pudo crear: ' + textoError(r && r.error));
     }).catch(function () { $('btnCrearV').disabled = false; alert('Sin conexión: no se pudo crear.'); });
   };
-  $('btnDespues').onclick = function () { if (vItem) despues[vItem.c] = true; mostrar('vContar'); };
+  $('btnDespues').onclick = function () { if (vItem && !vEditar) despues[vItem.c] = true; mostrar('vContar'); };
 
   // --- terminar rack = confirmar
   var siguiente = '';
   $('btnTerminar').onclick = function () {
     if (!rack) return;
     if (cola.length) { alert('Hay ' + cola.length + ' códigos sin enviar. Espera a que se envíen para terminar el rack.'); return; }
-    mostrar('vTerminar'); $('tTitulo').textContent = linda(rack.split(' · ').pop()) + ' · resumen'; $('tLista').textContent = ''; $('tAvisos').hidden = true;
+    mostrar('vTerminar'); $('tTitulo').textContent = 'Confirmar ' + linda(rack.split(' · ').pop()); $('tLista').textContent = ''; $('tAvisos').hidden = true;
     $('tEsc').textContent = '…'; $('tVest').textContent = '…';
     var p = rack.split(' · '), m = /^RACK (\d+)$/.exec(p[p.length - 1]);
     siguiente = m && p.length >= 3 ? 'RACK ' + (Number(m[1]) + 1) : '';
@@ -505,11 +535,14 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     }).catch(function () { alert('Sin conexión: no se pudo cargar el resumen.'); mostrar('vContar'); });
   };
   function confirmarRack() {
-    return post({ accion: 'terminar', rack: rack }).then(function (r) {
+    var bs = [$('btnConfSig'), $('btnConfOtro')], txt = bs.map(function (b) { return b.textContent; });
+    bs.forEach(function (b) { b.disabled = true; }); $('btnConfSig').textContent = 'Confirmando… (unos segundos)';
+    function listo() { bs.forEach(function (b, i) { b.disabled = false; b.textContent = txt[i]; }); }
+    return post({ accion: 'terminar', rack: rack }).then(function (r) { listo();
       if (r && r.ok) { banner(linda(rack.split(' · ').pop()) + ' confirmado', r.confirmados + ' líneas al inventario', 'ok');
         if (r.otros) alert(r.otros + ' sigue en este rack. Si escanea algo más, terminen el rack de nuevo para confirmarlo.'); return true; }
       alert('No se pudo confirmar: ' + textoError(r && r.error)); return false;
-    }).catch(function () { alert('Sin conexión: no se pudo confirmar.'); return false; });
+    }).catch(function () { listo(); alert('Sin conexión: no se pudo confirmar.'); return false; });
   }
   $('btnConfSig').onclick = function () {
     var p = rack.split(' · ');
