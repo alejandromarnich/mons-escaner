@@ -102,6 +102,14 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   <ul id="vModelos"></ul>
   <div id="vColores" hidden><div class="m s">Color</div><div class="grid2" id="vColBtns"></div></div>
   <div id="vTallas" hidden><div class="m s">Talla</div><div class="grid2" id="vTalBtns"></div></div>
+  <div class="row" id="vOtros"><button id="btnOtroCT" hidden>Otro color o talla</button><button id="btnNuevoV">No está: vestido nuevo</button></div>
+  <div class="card" id="vNuevo" hidden>
+    <b id="nTitulo"></b>
+    <div id="nModelo"><input id="nDesc" autocapitalize="characters" autocomplete="off" placeholder="Nombre (ej. Vestido largo satín)" style="width:100%;margin:6px 0">
+      <input id="nMarca" autocapitalize="characters" autocomplete="off" placeholder="Marca (ej. May Queen)" style="width:100%;margin:6px 0"></div>
+    <div class="row"><input id="nColor" autocapitalize="characters" autocomplete="off" placeholder="Color"><input id="nTalla" autocapitalize="characters" autocomplete="off" placeholder="Talla"></div>
+    <button class="p" id="btnCrearV" style="width:100%">Crear y vincular</button>
+  </div>
   <div class="pie"><button class="p" id="btnVincular" style="width:100%" hidden></button>
     <div class="row"><button id="btnDespues">Después (queda por vincular)</button></div></div>
 </section>
@@ -404,6 +412,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     $('vTitulo').textContent = x.estado === 'COMPLETAR' ? 'Falta color y talla' : 'No conozco este código';
     $('vCodigo').textContent = x.c + ' · ya quedó contado';
     $('vModelos').textContent = ''; $('vColores').hidden = true; $('vTallas').hidden = true; $('btnVincular').hidden = true;
+    $('btnOtroCT').hidden = true; $('vNuevo').hidden = true; ['nDesc', 'nMarca', 'nColor', 'nTalla'].forEach(function (k) { $(k).value = ''; });
     $('inBuscar').value = x.estilo || ''; mostrar('vVincular');
     if (x.estilo) buscar(); else setTimeout(function () { $('inBuscar').focus(); }, 50);
   }
@@ -433,6 +442,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
       var b = el('button', v.talla, v.clave === vClave ? 'sel' : ''); b.onclick = function () { vClave = v.clave; pintarVariantes(); }; $('vTalBtns').appendChild(b);
     });
     var va = vModelo.variantes.filter(function (v) { return v.clave === vClave; })[0];
+    $('btnOtroCT').hidden = false; if (nModo === 'otro') $('nTitulo').textContent = 'Otro color o talla de ' + (vModelo.modelo || linda(vModelo.descripcion));
     $('btnVincular').hidden = !va;
     if (va) $('btnVincular').textContent = 'Vincular · ' + (vModelo.modelo || linda(vModelo.descripcion)) + ' ' + linda(va.color) + ' ' + va.talla;
   }
@@ -444,6 +454,30 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
       if (r && r.ok) { banner(linda(r.detalle), vItem.c, 'ok'); mostrar('vContar'); cargarRack(); }
       else alert('No se pudo vincular: ' + textoError(r && r.error));
     }).catch(function () { $('btnVincular').disabled = false; alert('Sin conexión: no se pudo vincular.'); });
+  };
+  // --- color y talla (o vestido) que no está en el catálogo: se crea y se vincula
+  var nModo = '';
+  function abrirNuevo(modo) {
+    nModo = modo; $('vNuevo').hidden = false; $('nModelo').hidden = modo === 'otro';
+    $('nTitulo').textContent = modo === 'otro' ? 'Otro color o talla de ' + (vModelo.modelo || linda(vModelo.descripcion)) : 'Vestido nuevo';
+    if (modo === 'nuevo' && !$('nDesc').value) $('nDesc').value = $('inBuscar').value.trim();
+    setTimeout(function () { $(modo === 'otro' ? 'nColor' : 'nDesc').focus(); }, 50);
+  }
+  $('btnOtroCT').onclick = function () { if (vModelo) abrirNuevo('otro'); };
+  $('btnNuevoV').onclick = function () { abrirNuevo('nuevo'); };
+  $('btnCrearV').onclick = function () {
+    if (!vItem) return;
+    var nv = { color: $('nColor').value.trim(), talla: $('nTalla').value.trim() };
+    if (nModo === 'otro' && vModelo) { nv.estilo = vModelo.modelo || ''; nv.marca = vModelo.marca; nv.descripcion = vModelo.descripcion; }
+    else { nv.descripcion = $('nDesc').value.trim(); nv.marca = $('nMarca').value.trim(); }
+    if (!nv.descripcion) { alert('Escribe el nombre del vestido.'); return; }
+    if (!nv.color || !nv.talla) { alert('Escribe el color y la talla.'); return; }
+    $('btnCrearV').disabled = true;
+    post({ accion: 'vincular', c: vItem.c, fila: vItem.fila, nuevo: nv }).then(function (r) {
+      $('btnCrearV').disabled = false;
+      if (r && r.ok) { banner(linda(r.detalle), vItem.c + ' · nuevo', 'ok'); mostrar('vContar'); cargarRack(); }
+      else alert('No se pudo crear: ' + textoError(r && r.error));
+    }).catch(function () { $('btnCrearV').disabled = false; alert('Sin conexión: no se pudo crear.'); });
   };
   $('btnDespues').onclick = function () { if (vItem) despues[vItem.c] = true; mostrar('vContar'); };
 
