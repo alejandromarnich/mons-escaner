@@ -39,28 +39,27 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 .paso{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 4px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0}
 .grid3 button,.grid4 button{padding:0 4px;min-height:44px;font-size:15px}button.existe{border-color:var(--selfg)}
-#teclado{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#1a1a1a;border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:10px 12px calc(env(safe-area-inset-bottom) + 12px);box-shadow:0 -8px 24px rgba(0,0,0,.6)}
-#visor{font:600 26px/1.2 ui-monospace,Menlo,monospace;letter-spacing:1px;background:#000;border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:52px;margin:6px 0 8px;overflow-wrap:anywhere}
-#teclas{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}#teclas.abc{grid-template-columns:repeat(6,1fr)}#teclas button{min-height:54px;font-size:22px;font-weight:600;padding:0}#teclas.abc button{min-height:46px;font-size:18px}
+.cod{font:600 20px/1.2 ui-monospace,Menlo,monospace;letter-spacing:1px;min-width:0}
+.abc{flex:0 0 58px!important;padding:0;font-size:14px}
 </style>
 </head>
 <body>
 
 <section id="conf" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v19</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v20</span></div>
   <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
   <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
 </section>
 
 <section id="vNombre" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v19</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v20</span></div>
   <p>¿Quién cuenta con este teléfono? Queda anotado en cada escaneo.</p>
   <input id="inNombre" maxlength="20" placeholder="Alejandro" autocomplete="off" style="width:100%">
   <div class="row"><button class="p" id="btnNombre">Guardar</button></div>
 </section>
 
 <section id="vContar" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v19 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v20 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <div><div class="m s">Tu rack</div><b id="rackTxt">Sin rack</b></div>
     <button class="chico" id="btnCambiar">Cambiar</button>
@@ -70,6 +69,8 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   <div class="m s" id="estCam">Cámara: iniciando…</div>
   <div class="row" id="filaCam" hidden><button id="btnCam">Iniciar cámara</button></div>
   <div class="row"><button id="btnTeclado">⌨ Escribir código</button><button id="btnMas1" disabled>+1 igual</button></div>
+  <div class="row" id="filaCod" hidden><input id="manual" class="cod" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done" placeholder="Código">
+    <button class="abc" id="abcManual">ABC</button><button class="p" id="btnManual" style="flex:0 0 96px">Agregar</button></div>
   <div id="ult"><div class="m">Apunta la cámara al código de barras</div></div>
   <div class="row" id="filaPend" hidden style="align-items:center"><b id="nPendV" class="warn" style="flex:1"></b><button class="chico" id="btnResolver">Resolver ahora</button></div>
   <div class="grid2"><button id="fVest" class="sel">Por vestido</button><button id="fEsc">Por escaneo</button></div>
@@ -104,7 +105,8 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 <section id="vVincular" hidden>
   <div class="card" style="border-color:var(--warn)"><b class="warn" id="vTitulo">No conozco este código</b><div class="m s" id="vCodigo"></div></div>
   <div class="paso">1 · Modelo</div>
-  <input id="inBuscar" autocapitalize="characters" autocomplete="off" placeholder="Número de modelo (ej. MQ1877) o nombre" style="width:100%">
+  <div class="row" style="margin:0"><input id="inBuscar" class="cod" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="search" placeholder="Número de modelo (ej. 1877)">
+    <button class="abc" id="abcBuscar">ABC</button></div>
   <ul id="vModelos"></ul>
   <div id="vMarca" hidden><div class="paso">Marca</div><div class="grid3" id="vMarBtns"></div>
     <input id="inNomVest" autocapitalize="characters" autocomplete="off" placeholder="Nombre del vestido (opcional)" style="width:100%;margin-top:6px"></div>
@@ -115,11 +117,6 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     <div class="row"><button id="btnDespues">Seguir escaneando (queda por vincular)</button></div></div>
 </section>
 
-<div id="teclado" hidden>
-  <div style="display:flex;justify-content:space-between;align-items:center"><b>Escribir código</b><button class="chico" id="btnTecCerrar">Cerrar</button></div>
-  <div id="visor"></div><div id="teclas"></div>
-  <button class="p" id="btnTecAgregar" style="width:100%;margin-top:8px;min-height:52px" disabled>Agregar</button>
-</div>
 <button id="nueva" hidden style="position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:var(--warn);color:#fff;border:0;border-radius:10px;padding:14px;font-weight:600">Hay una versión nueva del escáner · Toca para actualizar</button>
 <section id="vTerminar" hidden>
   <div class="top"><h1 id="tTitulo">Resumen</h1><button class="chico" id="btnTermVolver">Volver</button></div>
@@ -157,7 +154,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   function el(tag, txt, cls) { var e = document.createElement(tag); if (txt !== undefined) e.textContent = txt; if (cls) e.className = cls; return e; }
   // "CD0234 · ROSE GOLD" → "CD0234 · Rose Gold": las palabras con números (modelos) quedan en mayúsculas
   function linda(s) { return String(s || '').replace(/[0-9A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/g, function (w) { return /\d/.test(w) || /^(X{0,3}[SL]|M)$/i.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }); }
-  var VERSION = 19;
+  var VERSION = 20;
   function esMons(c) { return /^510\d{7}$/.test(String(c || '')); }   // etiqueta Mons: siempre un color y talla
 
   // --- configuración: llega una vez en el enlace (#u=...&t=...) y se guarda en el teléfono
@@ -171,7 +168,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   }
   var cfg = leer('cfg', null);
   var vistas = ['conf', 'vNombre', 'vContar', 'vRack', 'vRackVer', 'vVincular', 'vTerminar', 'vAjustes'], vista = '';
-  function mostrar(v) { vista = v; vistas.forEach(function (x) { $(x).hidden = x !== v; }); if ($('teclado')) $('teclado').hidden = true; window.scrollTo(0, 0); }
+  function mostrar(v) { vista = v; vistas.forEach(function (x) { $(x).hidden = x !== v; }); window.scrollTo(0, 0); }
   if (!cfg) {
     mostrar('conf');
     $('btnPegar').onclick = function () {
@@ -419,6 +416,11 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     }).catch(function () { alert('Sin conexión: no se pudo cambiar el nombre.'); });
   };
   $('btnRackVolver').onclick = function () { mostrar('vContar'); };
+  function revisarVersion() {
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.v > VERSION) $('nueva').hidden = false; }).catch(function () {});
+  }
+  setInterval(revisarVersion, 60000); revisarVersion();
   $('nueva').onclick = function () { if (cola.length && !confirm('Hay ' + cola.length + ' códigos sin enviar: quedan guardados y se envían después. ¿Actualizar?')) return; location.reload(); };
 
   // --- vincular, completar o corregir un vestido: un solo camino (modelo → color → talla → Listo)
@@ -438,6 +440,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     $('inBuscar').value = x.estilo || ''; $('inNomVest').value = ''; mostrar('vVincular');
     if (!CAT) cargarCatalogo().then(pintarVincular);
     pintarVincular(true);
+    $('inBuscar').setAttribute('inputmode', 'numeric'); $('inBuscar').setAttribute('pattern', '[0-9]*'); $('abcBuscar').textContent = 'ABC';
     if (!x.estilo) setTimeout(function () { $('inBuscar').focus(); }, 50);
   }
   /** Corregir un vestido ya escaneado (otro color, talla o modelo). */
@@ -472,7 +475,8 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
         li.onclick = function () { sel = { modelo: m, nuevo: false, marca: '', color: '', talla: '' }; pintarVincular(); };
         $('vModelos').appendChild(li);
       });
-      if (q.length >= 2 && !res.some(function (m) { return m.m === n; })) {
+      // "Modelo nuevo" si no hay resultados o el número trae letras (con solo números, 1877 puede ser parte de MQ1877)
+      if (q.length >= 2 && !res.some(function (m) { return m.m === n; }) && (!res.length || /[A-Z]/i.test(q))) {
         var li = el('li', '', 'toca'); li.appendChild(el('span', '＋ Modelo nuevo ' + q.toUpperCase(), 'd')); li.appendChild(el('span', 'no está', 'm s'));
         if (sel.nuevo) li.style.color = 'var(--selfg)';
         li.onclick = function () { sel = { modelo: null, nuevo: true, marca: '', color: '', talla: '' }; pintarVincular(); };
@@ -651,24 +655,25 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 
   // --- botones generales
   $('btnCam').onclick = function () { aviso(''); $('estCam').textContent = 'Cámara: iniciando…'; try { if (flujo) flujo.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} flujo = null; iniciar(); };
-  var tecla = '', abc = false;
-  function pintarTeclado() {
-    $('visor').textContent = tecla || ' '; $('btnTecAgregar').disabled = !tecla;
-    var t = $('teclas'); t.textContent = ''; t.className = abc ? 'abc' : '';
-    var ks = abc ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('') : ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    ks.forEach(function (k) { var b = el('button', k); b.onclick = function () { tecla += k; pintarTeclado(); }; t.appendChild(b); });
-    var bm = el('button', abc ? '123' : 'ABC'); bm.style.fontSize = '16px'; bm.onclick = function () { abc = !abc; pintarTeclado(); }; t.appendChild(bm);
-    if (!abc) { var b0 = el('button', '0'); b0.onclick = function () { tecla += '0'; pintarTeclado(); }; t.appendChild(b0); }
-    var bb = el('button', '⌫'); bb.onclick = function () { tecla = tecla.slice(0, -1); pintarTeclado(); }; t.appendChild(bb);
+  /**
+   * Campos de código: teclado numérico del iPhone (inputmode numeric). ABC cambia a letras para códigos como RQ8011.
+   * Para que el iPhone cambie de teclado hay que sacar y volver a poner el foco.
+   */
+  function teclado(inp, btn, letras) {
+    if (letras) { inp.setAttribute('inputmode', 'text'); inp.removeAttribute('pattern'); btn.textContent = '123'; }
+    else { inp.setAttribute('inputmode', 'numeric'); inp.setAttribute('pattern', '[0-9]*'); btn.textContent = 'ABC'; }
+    inp.blur(); inp.focus();
   }
-  $('btnTeclado').onclick = function () { tecla = ''; abc = false; $('teclado').hidden = false; pintarTeclado(); };
-  $('btnTecCerrar').onclick = function () { $('teclado').hidden = true; };
-  $('btnTecAgregar').onclick = function () { if (!tecla) return; agregar(tecla); tecla = ''; $('teclado').hidden = true; };
+  $('abcManual').onclick = function () { teclado($('manual'), $('abcManual'), $('abcManual').textContent === 'ABC'); };
+  $('abcBuscar').onclick = function () { teclado($('inBuscar'), $('abcBuscar'), $('abcBuscar').textContent === 'ABC'); };
+  $('btnTeclado').onclick = function () {
+    var f = $('filaCod'); f.hidden = !f.hidden;
+    if (!f.hidden) { $('manual').value = ''; teclado($('manual'), $('abcManual'), false); } else $('manual').blur();
+  };
+  // Agregar deja el campo listo para el siguiente código (el teclado sigue abierto)
+  $('btnManual').onclick = function () { var c = $('manual').value.trim().toUpperCase(); if (!c) { $('manual').focus(); return; } agregar(c); $('manual').value = ''; $('manual').focus(); };
+  $('manual').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('btnManual').click(); } });
   $('btnMas1').onclick = function () { if (ultimoIgual) agregar(ultimoIgual.c, ultimoIgual.clave); };
-  document.addEventListener('keydown', function (e) {   // teclado físico (o lector USB) también sirve con el panel abierto
-    if ($('teclado').hidden) return;
-    if (/^[0-9a-zA-Z]$/.test(e.key)) { tecla += e.key.toUpperCase(); pintarTeclado(); } else if (e.key === 'Backspace') { tecla = tecla.slice(0, -1); pintarTeclado(); } else if (e.key === 'Enter') $('btnTecAgregar').click();
-  });
   $('btnAjustes').onclick = function () { pintarCuenta(); mostrar('vAjustes'); };
   $('btnAjVolver').onclick = function () { mostrar('vContar'); };
   $('btnZona').onclick = function () { verZona = !verZona; $('zonaVista').hidden = !verZona; $('btnZona').textContent = verZona ? 'Ocultar zona analizada' : 'Ver zona analizada'; };
