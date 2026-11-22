@@ -9,55 +9,115 @@
 <link rel="manifest" href="manifest.json">
 <title>Escáner Mons</title>
 <style>
-:root{--bg:#111;--fg:#f2f2f2;--mut:#9a9a9a;--ok:#3ecf8e;--warn:#f5a524;--bad:#ff5c5c;--card:#1d1d1d;--line:#2d2d2d}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 -apple-system,system-ui,sans-serif;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
-h1{font-size:18px;margin:12px 0 4px}.m{color:var(--mut);font-size:14px}
-#lugar{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}
-#lugar b{display:block;font-size:17px}
-
+:root{--bg:#111;--fg:#f2f2f2;--mut:#9a9a9a;--ok:#3ecf8e;--warn:#f5a524;--bad:#ff5c5c;--card:#1d1d1d;--line:#2d2d2d;--sel:#1f3a5c;--selfg:#bcdcff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 -apple-system,system-ui,sans-serif;padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 12px)}
+[hidden]{display:none!important}
+button:disabled{opacity:.45}
+.top{display:flex;justify-content:space-between;align-items:center;margin:10px 0 6px}.top h1{font-size:18px;margin:0}
+.m{color:var(--mut);font-size:14px}.s{font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}
 .row{display:flex;gap:8px;margin:8px 0}.row>*{flex:1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
 button,input{font:inherit;min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:0 12px}
-button.p{background:var(--ok);color:#06240f;border-color:var(--ok);font-weight:600}
-.est{display:flex;justify-content:space-between;margin:6px 0;font-size:15px}
+button.p{background:var(--fg);color:#111;border-color:var(--fg);font-weight:600}
+button.sel{background:var(--sel);color:var(--selfg);border-color:var(--selfg)}
+button.chico{min-height:36px;padding:2px 10px;font-size:14px;flex:0 0 auto}
 .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.x{font-size:12px;padding:1px 7px;border-radius:8px;background:#3d2c0a;color:var(--warn);margin-left:6px;font-weight:600}
 #aviso{display:none;margin:8px 0;padding:10px 12px;border-radius:10px;background:#3a1d1d;color:#ffd0d0}
-ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}li.an span:first-child{text-decoration:line-through;color:var(--mut)}li button{min-height:34px;padding:2px 10px;font-size:14px;flex:0 0 auto}
-#conf{display:none}
-#lector{height:190px;overflow:hidden;background:#000;border-radius:10px}
+ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
+#lector{height:30vh;min-height:170px;overflow:hidden;background:#000;border-radius:10px}
 #lector video{width:100%;height:100%;object-fit:cover;display:block}
-#mira{position:absolute;left:7%;right:7%;top:20%;bottom:20%;border:2px dashed rgba(255,255,255,.85);border-radius:8px;pointer-events:none}
+#mira{position:absolute;left:7%;right:7%;top:22%;bottom:22%;border:2px dashed rgba(255,255,255,.7);border-radius:8px;pointer-events:none}
 #flash{position:absolute;inset:0;border:6px solid var(--ok);background:rgba(62,207,142,.35);opacity:0;pointer-events:none;border-radius:10px;transition:opacity .45s}
 #flash.on{opacity:1;transition:none}
-#ult{margin:8px 0;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--line);text-align:center;min-height:64px}
-#ult .g{font-size:26px;font-weight:700;letter-spacing:.5px;word-break:break-all}#ult .e{font-size:14px;margin-top:2px}
+#ult{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--card);border:1px solid var(--line);min-height:58px}
+#ult .g{font-size:18px;font-weight:600;overflow-wrap:anywhere}#ult .e{font-size:13px;color:var(--mut)}
+.num{background:var(--card);border-radius:10px;padding:10px}.num b{display:block;font-size:24px}
+.pie{position:sticky;bottom:0;background:var(--bg);padding:8px 0}
 </style>
 </head>
 <body>
-<h1>Escáner Mons <span class="m" style="font-size:.6em;font-weight:normal">v13</span></h1>
-<div class="m" id="sub">Cada código se guarda directo en la planilla de inventario.</div>
 
-<div id="conf">
+<section id="conf" hidden>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v14</span></div>
   <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
   <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
-</div>
+</section>
 
-<div id="app" hidden>
-  <div id="lugar"><span class="m">Lugar actual</span><b id="lugarTxt">…</b></div>
+<section id="vNombre" hidden>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v14</span></div>
+  <p>¿Quién cuenta con este teléfono? Queda anotado en cada escaneo.</p>
+  <input id="inNombre" maxlength="20" placeholder="Alejandro" autocomplete="off" style="width:100%">
+  <div class="row"><button class="p" id="btnNombre">Guardar</button></div>
+</section>
+
+<section id="vContar" hidden>
+  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v14 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
+  <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <div><div class="m s">Tu rack</div><b id="rackTxt">Sin rack</b></div>
+    <button class="chico" id="btnCambiar">Cambiar</button>
+  </div>
   <div id="aviso"></div>
-  <div id="ult"><div class="m">Aquí verás cada código leído</div></div>
   <div style="position:relative"><div id="lector"></div><div id="mira"></div><div id="flash"></div></div>
-  <div class="m" id="estCam">Cámara: iniciando…</div>
-  <div class="row"><button id="btnCam" hidden>Iniciar cámara</button><button id="btnZona">Ver zona analizada</button></div>
-  <div class="row"><button id="btnSonido">Sonido: apagado</button></div>
-  <canvas id="zonaVista" hidden style="width:100%;border:1px solid var(--line);border-radius:8px"></canvas>
-  <div class="est"><span>Enviados: <b id="nEnv" class="ok">0</b></span><span>Pendientes: <b id="nPend">0</b></span></div>
-  <div class="row"><button id="btnPausa">Pausar cámara</button><button id="btnReenviar">Reenviar pendientes</button></div>
-  <div class="row"><input id="manual" placeholder="O escribe un código" inputmode="text" autocapitalize="characters" autocomplete="off"><button class="p" id="btnManual" style="flex:0 0 96px">Agregar</button></div>
-  <div class="m">Últimos escaneos</div>
+  <div class="m s" id="estCam">Cámara: iniciando…</div>
+  <div class="row" id="filaCam" hidden><button id="btnCam">Iniciar cámara</button></div>
+  <div id="ult"><div class="m">Apunta la cámara al código de barras</div></div>
+  <div class="grid2"><button id="fVest" class="sel">Por vestido</button><button id="fEsc">Por escaneo</button></div>
   <ul id="lista"></ul>
-  <div class="m">Toca Anular junto a un escaneo para quitarlo del conteo.</div>
+  <div class="m s" id="resumen"></div>
+  <div class="row" id="filaManual" hidden><input id="manual" placeholder="Código" autocapitalize="characters" autocomplete="off"><button id="btnManual" style="flex:0 0 96px">Agregar</button></div>
+  <div class="m s"><a href="#" id="lnkManual" style="color:var(--mut)">Escribir un código a mano</a></div>
+  <div class="pie"><button class="p" id="btnTerminar" style="width:100%">Terminar rack</button></div>
+</section>
+
+<section id="vRack" hidden>
+  <div class="top"><h1>Elegir rack</h1><button class="chico" id="btnRackVolver">Volver</button></div>
+  <div class="m s">Local</div><div class="grid2" id="rLocales"></div>
+  <div class="m s">Sector</div><div class="grid2" id="rSectores"></div>
+  <div class="m s">Rack</div>
+  <input id="inRack" maxlength="20" autocapitalize="characters" autocomplete="off" style="width:100%">
+  <div class="m s" style="margin-top:10px" id="rTitulo">Racks</div>
+  <ul id="rLista"></ul>
+  <div class="pie"><button class="p" id="btnUsar" style="width:100%">Usar este rack</button></div>
+</section>
+
+<section id="vVincular" hidden>
+  <div class="card" style="border-color:var(--warn)"><b class="warn" id="vTitulo">No conozco este código</b><div class="m s" id="vCodigo"></div></div>
+  <div class="m s">Busca el modelo</div>
+  <input id="inBuscar" autocapitalize="characters" autocomplete="off" placeholder="RQ8011" style="width:100%">
+  <ul id="vModelos"></ul>
+  <div id="vColores" hidden><div class="m s">Color</div><div class="grid2" id="vColBtns"></div></div>
+  <div id="vTallas" hidden><div class="m s">Talla</div><div class="grid2" id="vTalBtns"></div></div>
+  <div class="pie"><button class="p" id="btnVincular" style="width:100%" hidden></button>
+    <div class="row"><button id="btnDespues">Después (queda por vincular)</button></div></div>
+</section>
+
+<section id="vTerminar" hidden>
+  <div class="top"><h1 id="tTitulo">Resumen</h1><button class="chico" id="btnTermVolver">Volver</button></div>
+  <div class="grid2"><div class="num"><span class="m s">Escaneos</span><b id="tEsc">0</b></div><div class="num"><span class="m s">Vestidos</span><b id="tVest">0</b></div></div>
+  <ul id="tLista"></ul>
+  <div class="card" id="tAvisos" hidden style="border-color:var(--warn)"></div>
+  <div class="m s">Para corregir una cantidad, vuelve y anula el escaneo que sobra.</div>
+  <div class="pie">
+    <button class="p" id="btnConfSig" style="width:100%"></button>
+    <div class="row"><button id="btnConfOtro">Confirmar y elegir otro</button></div>
+    <div class="row"><button id="btnSeguir">Seguir escaneando</button></div>
+  </div>
+</section>
+
+<section id="vAjustes" hidden>
+  <div class="top"><h1>Ajustes</h1><button class="chico" id="btnAjVolver">Volver</button></div>
+  <div class="card"><span>Enviados: <b id="nEnv" class="ok">0</b></span> · <span>Pendientes: <b id="nPend">0</b></span>
+    <div class="row"><button id="btnReenviar">Reenviar pendientes</button></div></div>
+  <div class="row"><button id="btnSonido">Sonido: apagado</button></div>
+  <div class="row"><button id="btnPausa">Pausar cámara</button><button id="btnZona">Ver zona analizada</button></div>
+  <canvas id="zonaVista" hidden style="width:100%;border:1px solid var(--line);border-radius:8px"></canvas>
+  <div class="m s" id="diag"></div>
+  <div class="row"><button id="btnCambiarNombre">Cambiar nombre</button></div>
   <div class="row"><button id="btnBorrarConf">Borrar configuración de este teléfono</button></div>
-</div>
+</section>
 
 <script src="lib/zxing/reader.js"></script>
 <script>
@@ -66,166 +126,337 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
   function leer(k, d) { try { var v = LS.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
   function guardar(k, v) { try { LS.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function $(id) { return document.getElementById(id); }
+  function el(tag, txt, cls) { var e = document.createElement(tag); if (txt !== undefined) e.textContent = txt; if (cls) e.className = cls; return e; }
+  function linda(s) { return String(s || '').toLowerCase().replace(/(^|\s|·)([a-záéíóúñ])/g, function (m, a, b) { return a + b.toUpperCase(); }); }
 
   // --- configuración: llega una vez en el enlace (#u=...&t=...) y se guarda en el teléfono
+  function leerHash(t) { var q = {}; t.split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); }); return q; }
   var h = location.hash.replace(/^#/, '');
   if (h) {
-    var p = {}; h.split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
-    if (p.u && p.t) { guardar('cfg', { u: p.u, t: p.t }); }
-    // En el modo app (pantalla de inicio) ya quedó guardada: se limpia la dirección. En Safari se deja, para que
-    // "Agregar a pantalla de inicio" copie la configuración (en iPhone la app de inicio guarda sus datos aparte).
+    var p = leerHash(h);
+    if (p.u && p.t) guardar('cfg', { u: p.u, t: p.t });
     var enApp = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
     if (enApp) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
   }
   var cfg = leer('cfg', null);
+  var vistas = ['conf', 'vNombre', 'vContar', 'vRack', 'vVincular', 'vTerminar', 'vAjustes'], vista = '';
+  function mostrar(v) { vista = v; vistas.forEach(function (x) { $(x).hidden = x !== v; }); window.scrollTo(0, 0); }
   if (!cfg) {
-    $('conf').style.display = 'block';
+    mostrar('conf');
     $('btnPegar').onclick = function () {
       var t = $('pegar').value.trim(), i = t.indexOf('#'); if (i < 0) { alert('Ese texto no es un enlace de configuración.'); return; }
-      var q = {}; t.slice(i + 1).split('&').forEach(function (kv) { var j = kv.indexOf('='); if (j > 0) q[kv.slice(0, j)] = decodeURIComponent(kv.slice(j + 1)); });
-      if (!q.u || !q.t) { alert('Ese enlace no trae la configuración.'); return; }
+      var q = leerHash(t.slice(i + 1)); if (!q.u || !q.t) { alert('Ese enlace no trae la configuración.'); return; }
       guardar('cfg', { u: q.u, t: q.t }); location.reload();
     };
     return;
   }
-  $('app').hidden = false;
 
-  $('sub').textContent = 'Configurado ✓ · cada código se guarda directo en la planilla de inventario.';
-  if (leer('datosV', 0) !== 2) { try { LS.removeItem('cola'); LS.removeItem('enviados'); LS.removeItem('recientes'); } catch (e) {} guardar('datosV', 2); }
-  var cola = leer('cola', []), enviados = leer('enviados', 0), recientes = leer('recientes', []);
-  var ultimo = { c: '', t: 0 }, enviando = false, pausado = false, lugarAct = null;
+  // --- identidad del teléfono: id al azar (una vez) y nombre de quien cuenta
+  var tel = leer('tel', '');
+  if (!tel) { tel = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10)).toLowerCase(); guardar('tel', tel); }
+  var nombre = leer('nombre', '');
+  if (leer('datosV', 0) !== 3) { try { LS.removeItem('cola'); LS.removeItem('recientes'); } catch (e) {} guardar('datosV', 3); }
+
+  var cola = leer('cola', []), enviados = leer('enviados', 0), rack = leer('rack', ''), escaneos = [], filtro = leer('filtro', 'vest');
+  var enviando = false, pausado = false, cerrado = false;
 
   function aviso(t) { var a = $('aviso'); if (!t) { a.style.display = 'none'; return; } a.textContent = t; a.style.display = 'block'; }
-  function pintar() {
-    $('nEnv').textContent = enviados; var n = $('nPend'); n.textContent = cola.length; n.className = cola.length ? 'warn' : '';
-    var ul = $('lista'); ul.textContent = '';
-    recientes.slice(0, 8).forEach(function (r) {
-      var li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('span');
-      a.textContent = r.c + (r.d ? ' · ' + r.d : ''); li.appendChild(a);
-      if (r.an) { li.className = 'an'; b.textContent = 'anulado'; b.className = 'm'; li.appendChild(b); ul.appendChild(li); return; }
-      var x = document.createElement('button'); x.textContent = 'Anular'; x.onclick = function () { anular(r); };
-      b.style.display = 'flex'; b.style.alignItems = 'center'; b.style.gap = '8px';
-      var ck = document.createElement('span'); ck.textContent = r.ok ? '✓' : '…'; ck.className = r.ok ? 'ok' : 'warn';
-      b.appendChild(ck); b.appendChild(x); li.appendChild(b); ul.appendChild(li);
-    });
-    guardar('cola', cola); guardar('enviados', enviados); guardar('recientes', recientes.slice(0, 20));
+  function pintarCuenta() { $('nEnv').textContent = enviados; $('nPend').textContent = cola.length; $('nPend').className = cola.length ? 'warn' : ''; guardar('cola', cola); guardar('enviados', enviados); }
+
+  // --- servidor (receptor): POST con la clave; GET para el estado
+  function post(d) {
+    d.t = cfg.t; d.tel = tel; d.n = nombre;
+    return fetch(cfg.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(d) }).then(function (r) { return r.json(); });
+  }
+  function textoError(e) {
+    return ({ cerrado: 'El conteo está cerrado.', sin_lugar: 'Falta elegir el rack.', clave: 'La clave no es válida: abre de nuevo el enlace de configuración.',
+      terminado: 'Ese rack ya está terminado.', sin_telefono: 'Falta el nombre de este teléfono.' })[e] || e || 'error';
   }
 
-  // --- sonido de confirmación (en iPhone el audio se desbloquea con el primer toque; con el interruptor de silencio no suena)
-  var ctx = null;
+  // --- rack
+  function ponerRack(r) {
+    rack = r || ''; guardar('rack', rack);
+    $('rackTxt').textContent = rack ? linda(rack) : 'Sin rack: toca Cambiar';
+    $('btnTerminar').disabled = !rack;
+  }
+  function estado() {
+    var u = cfg.u + (cfg.u.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(cfg.t) + '&tel=' + encodeURIComponent(tel) + '&n=' + encodeURIComponent(nombre);
+    fetch(u).then(function (r) { return r.json(); }).then(function (r) {
+      if (!r || !r.ok) return;
+      cerrado = !!r.cerrado;
+      if (cerrado) aviso('El conteo está cerrado. Se reabre en la app de inventario.');
+      if ((r.rack || '') !== rack) { ponerRack(r.rack); cargarRack(); }
+    }).catch(function () {});
+  }
+
+  // --- lista del rack (servidor + lo que aún está en cola)
+  function cargarRack() {
+    if (!rack) { escaneos = []; pintarLista(); return; }
+    post({ accion: 'rack', rack: rack }).then(function (r) {
+      if (!r || !r.ok) return;
+      var pend = escaneos.filter(function (x) { return x.pend; });
+      escaneos = pend.concat(r.escaneos);
+      pintarLista();
+    }).catch(function () {});
+  }
+  function pintarLista() {
+    var ul = $('lista'); ul.textContent = '';
+    var mios = escaneos.filter(function (x) { return !x.lg || x.lg === rack; });
+    var vest = {}, nVest = 0;
+    mios.forEach(function (x) { var k = x.clave || ('?' + x.c); if (!vest[k]) { vest[k] = []; nVest++; } vest[k].push(x); });
+    $('resumen').textContent = rack ? 'En este rack: ' + mios.length + (mios.length === 1 ? ' escaneo · ' : ' escaneos · ') + nVest + (nVest === 1 ? ' vestido' : ' vestidos') : '';
+    $('fVest').className = filtro === 'vest' ? 'sel' : ''; $('fEsc').className = filtro === 'esc' ? 'sel' : '';
+    function nombreDe(x) { return x.estado === 'RECONOCIDO' ? linda(x.detalle) : x.c + (x.pend ? ' · enviando…' : ''); }
+    function filaLi(x, txt, n) {
+      var li = el('li'), d = el('span', txt, 'd');
+      if (x.estado === 'DESCONOCIDO' || x.estado === 'COMPLETAR') { d.className = 'd warn'; li.className = 'toca'; d.onclick = function () { abrirVincular(x); }; }
+      if (n > 1) d.appendChild(el('span', '×' + n, 'x'));
+      li.appendChild(d);
+      var der = el('span', '', 'm s'); der.style.display = 'flex'; der.style.gap = '8px'; der.style.alignItems = 'center';
+      if (filtro === 'esc' && x.hora) der.appendChild(el('span', x.hora));
+      var b = el('button', 'Anular', 'chico'); b.onclick = function () { anular(x); }; der.appendChild(b);
+      li.appendChild(der); ul.appendChild(li);
+    }
+    if (filtro === 'vest') Object.keys(vest).forEach(function (k) { var g = vest[k]; filaLi(g[0], nombreDe(g[0]), g.length); });
+    else mios.forEach(function (x) { filaLi(x, nombreDe(x), x.doble ? 2 : 0); });
+  }
+  $('fVest').onclick = function () { filtro = 'vest'; guardar('filtro', filtro); pintarLista(); };
+  $('fEsc').onclick = function () { filtro = 'esc'; guardar('filtro', filtro); pintarLista(); };
+
+  // --- aviso al leer: destello (el iPhone no deja vibrar desde una página web)
+  var ctx = null, sonido = leer('sonido', false);
   function desbloquear() { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {} }
   function destello() { var f = $('flash'); f.classList.add('on'); setTimeout(function () { f.classList.remove('on'); }, 120); }
-  function banner(c, estado, r) {
-    var u = $('ult'); u.textContent = '';
-    var sub = estado === 'ok' ? 'Guardado en la planilla' : estado === 'error' ? 'Pendiente: se reintenta solo' : 'Enviando…', cls = estado === 'ok' ? 'ok' : 'warn', marca = estado === 'ok' ? '✓ ' : estado === 'error' ? '⚠ ' : '… ';
-    if (estado === 'ok' && r && r.detalle) {
-      sub = r.detalle; if (r.estado === 'RECONOCIDO') { cls = 'ok'; marca = '✓ '; } else if (r.estado === 'POR COMPLETAR') { cls = 'warn'; marca = '◐ '; } else { cls = 'bad'; marca = '⚠ '; }
-    }
-    var g = document.createElement('div'); g.className = 'g'; g.textContent = marca + c;
-    var e = document.createElement('div'); e.className = 'e ' + cls; e.textContent = sub;
-    u.appendChild(g); u.appendChild(e);
-    u.style.borderColor = cls === 'ok' ? 'var(--ok)' : cls === 'bad' ? 'var(--bad)' : 'var(--line)';
-  }
-  var sonido = leer('sonido', false);
   function pitido(ok) {
     try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) {}
     if (!sonido) return;
-    try {
-      desbloquear();
-      var o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = ok ? 880 : 300; g.gain.value = 0.15; o.start(); o.stop(ctx.currentTime + 0.12);
-    } catch (e) {}
+    try { desbloquear(); var o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = ok ? 880 : 300; g.gain.value = 0.15; o.start(); o.stop(ctx.currentTime + 0.12); } catch (e) {}
+  }
+  function banner(titulo, sub, cls, n) {
+    var u = $('ult'); u.textContent = '';
+    var g = el('div', titulo, 'g ' + (cls || '')); if (n > 1) g.appendChild(el('span', '×' + n, 'x'));
+    u.appendChild(g); u.appendChild(el('div', sub, 'e'));
   }
 
   // --- envío con cola (si no hay internet, se guarda y se reenvía)
-  function post(item) {
-    return fetch(cfg.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ t: cfg.t, c: item.c, id: item.id, ts: item.ts, lg: item.lg }) })
-      .then(function (r) { return r.json(); });
-  }
   function enviar() {
     if (enviando || !cola.length) return; enviando = true;
     var item = cola[0];
-    post(item).then(function (r) {
+    post({ accion: 'guardar', c: item.c, id: item.id, ts: item.ts, lg: item.lg }).then(function (r) {
+      enviando = false;
       if (r && r.ok) {
-        cola.shift(); enviados++; recientes.forEach(function (x) { if (x.id === item.id) { x.ok = true; x.d = r.detalle || ''; x.fila = r.fila || 0; } }); aviso(''); banner(item.c, 'ok', r);
-      } else if (r && r.error === 'cerrado') { aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); pausa(true); enviando = false; pintar(); return; }
-      else if (r && r.error === 'sin_lugar') { aviso('Falta elegir el rack en la app de inventario. El código queda pendiente y se guarda al elegirlo.'); banner(item.c, 'error'); enviando = false; pintar(); return; }
-      else if (r && r.error === 'clave') { aviso('La clave no es válida. Abre de nuevo el enlace de configuración.'); enviando = false; return; }
-      else { aviso('No se pudo guardar: ' + ((r && r.error) || 'error') + '. Se reintenta solo.'); banner(item.c, 'error'); enviando = false; pintar(); return; }
-      enviando = false; pintar(); enviar();
-    }).catch(function () { enviando = false; banner(item.c, 'error'); aviso('Sin conexión. Los códigos quedan guardados y se envían solos.'); pintar(); });
-  }
-  // --- anular un escaneo desde la lista (si aún no se envió, solo se quita de la cola)
-  function anular(r) {
-    if (!confirm('¿Anular el escaneo ' + r.c + (r.d ? ' (' + r.d + ')' : '') + '?')) return;
-    var pos = -1; cola.forEach(function (x, i) { if (x.id === r.id) pos = i; });
-    if (pos >= 0) { cola.splice(pos, 1); r.an = true; aviso(''); pintar(); return; }
-    if (!r.fila) { aviso('Este escaneo hay que anularlo en la app de inventario (Contar → Anular).'); return; }
-    fetch(cfg.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ t: cfg.t, accion: 'anular', fila: r.fila, c: r.c }) })
-      .then(function (x) { return x.json(); }).then(function (x) {
-        if (x && x.ok) { r.an = true; if (enviados > 0) enviados--; aviso(''); $('ult').textContent = ''; var m = document.createElement('div'); m.className = 'm'; m.textContent = 'Anulado: ' + r.c; $('ult').appendChild(m); pintar(); }
-        else aviso('No se pudo anular: ' + ((x && x.error) || 'error'));
-      }).catch(function () { aviso('Sin conexión: no se pudo anular. Inténtalo de nuevo.'); });
+        cola.shift(); enviados++; aviso('');
+        var x = escaneos.filter(function (e) { return e.id === item.id; })[0];
+        if (x) { x.pend = false; x.fila = r.fila; x.estado = r.estado; x.detalle = r.detalle; x.estilo = r.estilo; x.lg = ''; }
+        if (r.estado === 'RECONOCIDO') { banner(linda(r.detalle), item.c, 'ok', r.n); pitido(true); }
+        else { banner(item.c, r.estado === 'COMPLETAR' ? 'Falta color y talla' : 'Código desconocido', 'warn', r.n); pitido(false); }
+        if (r.terminado) aviso('Ese rack está terminado: este escaneo queda pendiente de confirmar.');
+        pintarCuenta(); pintarLista();
+        if (x && (r.estado === 'DESCONOCIDO' || r.estado === 'COMPLETAR') && vista === 'vContar' && !despues[item.c]) abrirVincular(x);
+        enviar(); return;
+      }
+      var e = r && r.error;
+      if (e === 'cerrado') { cerrado = true; aviso('El conteo está cerrado. Los códigos quedan guardados en el teléfono.'); }
+      else aviso('No se pudo guardar: ' + textoError(e) + '. Se reintenta solo.');
+      pintarCuenta();
+    }).catch(function () { enviando = false; aviso('Sin conexión. Los códigos quedan guardados y se envían solos.'); pintarCuenta(); });
   }
   function agregar(c) {
     c = String(c).trim(); if (!c) return;
     if (/^https?:|#u=|[\s]{2,}/i.test(c) || c.length > 40) { $('estCam').textContent = 'Ignorado: no parece un código de barras'; return; }
-    var ahora = Date.now();
-    if (c === ultimo.c && ahora - ultimo.t < 3000) { $('estCam').textContent = 'Mismo código: espera 3 segundos para contar otro igual'; return; } // lectura doble
-    if (lugarAct === '') { // ya sabemos que no hay rack elegido: no se guarda para no mezclarlo con otro rack
-      pitido(false); aviso('Elige un rack en la app de inventario antes de escanear. Este código NO se guardó.'); banner(c, 'error'); $('ult').firstChild.textContent = '⚠ ' + c; $('ult').lastChild.textContent = 'No guardado: falta elegir el rack'; return;
-    }
-    ultimo = { c: c, t: ahora };
-    var item = { c: c, id: ahora.toString(36) + Math.random().toString(36).slice(2, 8), ts: ahora, lg: lugarAct || '' };
-    cola.push(item); recientes.unshift({ c: c, id: item.id, ok: false });
-    pitido(true); destello(); banner(c, 'envio'); pintar(); enviar();
+    if (!rack) { pitido(false); banner(c, 'No se guardó: primero elige el rack', 'bad'); aviso('Elige un rack (botón Cambiar) antes de escanear.'); return; }
+    var ahora = Date.now(), item = { c: c, id: ahora.toString(36) + Math.random().toString(36).slice(2, 8), ts: ahora, lg: rack };
+    cola.push(item);
+    escaneos.unshift({ id: item.id, c: c, pend: true, lg: rack, hora: new Date(ahora).toTimeString().slice(0, 5) });
+    destello(); banner(c, 'Enviando…', '');
+    pintarCuenta(); pintarLista(); enviar();
+  }
+  function anular(x) {
+    if (!confirm('¿Anular ' + (x.estado === 'RECONOCIDO' ? linda(x.detalle) : x.c) + '?')) return;
+    var pos = -1; cola.forEach(function (q, i) { if (q.id === x.id) pos = i; });
+    if (pos >= 0) { cola.splice(pos, 1); escaneos = escaneos.filter(function (e) { return e !== x; }); pintarCuenta(); pintarLista(); return; }
+    if (!x.fila) { aviso('Este escaneo aún no tiene fila: espera un momento y vuelve a intentar.'); return; }
+    post({ accion: 'anular', fila: x.fila, c: x.c }).then(function (r) {
+      if (r && r.ok) { escaneos = escaneos.filter(function (e) { return e !== x; }); aviso(''); banner('Anulado', x.c, 'm'); pintarLista(); }
+      else aviso('No se pudo anular: ' + textoError(r && r.error));
+    }).catch(function () { aviso('Sin conexión: no se pudo anular. Inténtalo de nuevo.'); });
   }
 
-  // --- lugar actual (lo elige la app de inventario)
-  function estado() {
-    fetch(cfg.u + (cfg.u.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(cfg.t)).then(function (r) { return r.json(); }).then(function (r) {
-      if (r && r.ok) { lugarAct = r.lugar || ''; $('lugarTxt').textContent = r.lugar || '(sin lugar: elígelo en la app de inventario)'; if (r.cerrado) aviso('El conteo está cerrado. Reábrelo en la app de inventario.'); }
+  // --- elegir rack
+  var racksDatos = null, selLocal = '', selSector = '';
+  function abrirRack() {
+    mostrar('vRack'); $('rLista').textContent = ''; $('rTitulo').textContent = 'Cargando racks…';
+    post({ accion: 'racks' }).then(function (r) {
+      if (!r || !r.ok) { $('rTitulo').textContent = 'No se pudo cargar: ' + textoError(r && r.error); return; }
+      racksDatos = r.locales;
+      var p = rack ? rack.split(' · ') : [];
+      selLocal = selLocal || p[0] || racksDatos[0].id; selSector = selSector || p[1] || '';
+      pintarRacks(true);
+    }).catch(function () { $('rTitulo').textContent = 'Sin conexión: no se pudo cargar la lista.'; });
+  }
+  function pintarRacks(sugerir) {
+    var loc = racksDatos.filter(function (l) { return l.id === selLocal; })[0] || racksDatos[0];
+    selLocal = loc.id;
+    if (!loc.sectores.some(function (s) { return s.sector === selSector; })) selSector = loc.sectores[0] ? loc.sectores[0].sector : '';
+    var sec = loc.sectores.filter(function (s) { return s.sector === selSector; })[0] || { racks: [], sugerido: 'RACK 1' };
+    $('rLocales').textContent = '';
+    racksDatos.forEach(function (l) { var b = el('button', linda(l.id), l.id === selLocal ? 'sel' : ''); b.onclick = function () { selLocal = l.id; selSector = ''; pintarRacks(true); }; $('rLocales').appendChild(b); });
+    $('rSectores').textContent = '';
+    loc.sectores.forEach(function (s) { var b = el('button', linda(s.sector), s.sector === selSector ? 'sel' : ''); b.onclick = function () { selSector = s.sector; pintarRacks(true); }; $('rSectores').appendChild(b); });
+    if (sugerir) $('inRack').value = linda(sec.sugerido);
+    $('rTitulo').textContent = sec.racks.length ? 'Racks de ' + linda(selSector) : 'Aún no hay racks en ' + linda(selSector);
+    $('rLista').textContent = '';
+    sec.racks.forEach(function (x) {
+      var li = el('li'), est = x.mio ? 'tú' : x.ocupante ? 'lo cuenta ' + x.ocupante : x.terminado ? 'terminado' : '';
+      li.appendChild(el('span', linda(x.rack), 'd'));
+      li.appendChild(el('span', est, 'm s ' + (x.terminado ? 'ok' : x.ocupante ? 'warn' : '')));
+      if (!x.ocupante) { li.className = 'toca'; li.onclick = function () { $('inRack').value = linda(x.rack); }; }
+      $('rLista').appendChild(li);
+    });
+    $('btnUsar').textContent = 'Usar ' + ($('inRack').value || 'este rack');
+  }
+  $('inRack').oninput = function () { $('btnUsar').textContent = 'Usar ' + ($('inRack').value || 'este rack'); };
+  function usarRack(local, sector, nombreRack, reabrir) {
+    return post({ accion: 'usarRack', local: local, sector: sector, rack: nombreRack, reabrir: reabrir === true }).then(function (r) {
+      if (r && r.ok) { ponerRack(r.rack); escaneos = []; pintarLista(); cargarRack(); aviso(''); banner('Rack listo', linda(r.rack), 'ok'); mostrar('vContar'); return true; }
+      if (r && r.error === 'terminado') {
+        if (confirm(linda(nombreRack) + ' ya está terminado. ¿Reabrirlo para escanear de nuevo? Al terminarlo se vuelve a confirmar.')) return usarRack(local, sector, nombreRack, true);
+        return false;
+      }
+      alert(textoError(r && r.error)); return false;
+    }).catch(function () { alert('Sin conexión: no se pudo cambiar el rack.'); return false; });
+  }
+  $('btnUsar').onclick = function () {
+    var n = $('inRack').value.trim(); if (!n) { alert('Escribe el nombre del rack.'); return; }
+    if (cola.length) { alert('Hay ' + cola.length + ' códigos sin enviar. Espera a que se envíen antes de cambiar de rack.'); return; }
+    usarRack(selLocal, selSector, n.toUpperCase());
+  };
+  $('btnCambiar').onclick = abrirRack;
+  $('btnRackVolver').onclick = function () { mostrar('vContar'); };
+
+  // --- vincular un código desconocido (o completar color y talla de un modelo)
+  var vItem = null, vModelo = null, vColor = '', vClave = '', tBuscar = 0;
+  function abrirVincular(x) {
+    vItem = x; vModelo = null; vColor = ''; vClave = '';
+    $('vTitulo').textContent = x.estado === 'COMPLETAR' ? 'Falta color y talla' : 'No conozco este código';
+    $('vCodigo').textContent = x.c + ' · ya quedó contado';
+    $('vModelos').textContent = ''; $('vColores').hidden = true; $('vTallas').hidden = true; $('btnVincular').hidden = true;
+    $('inBuscar').value = x.estilo || ''; mostrar('vVincular');
+    if (x.estilo) buscar(); else setTimeout(function () { $('inBuscar').focus(); }, 50);
+  }
+  function buscar() {
+    var q = $('inBuscar').value.trim(); if (q.length < 2) { $('vModelos').textContent = ''; return; }
+    post({ accion: 'buscar', q: q }).then(function (r) {
+      if (!r || !r.ok || q !== $('inBuscar').value.trim()) return;
+      $('vModelos').textContent = '';
+      if (!r.modelos.length) $('vModelos').appendChild(el('li', 'Sin resultados', 'm'));
+      r.modelos.forEach(function (m) {
+        var li = el('li', '', 'toca'); li.appendChild(el('span', (m.modelo ? m.modelo + ' · ' : '') + linda(m.descripcion), 'd'));
+        if (vModelo === m) li.style.color = 'var(--selfg)';
+        li.onclick = function () { vModelo = m; vColor = ''; vClave = ''; pintarVariantes(); };
+        $('vModelos').appendChild(li);
+      });
+      if (r.modelos.length === 1) { vModelo = r.modelos[0]; pintarVariantes(); }
     }).catch(function () {});
   }
+  $('inBuscar').oninput = function () { clearTimeout(tBuscar); tBuscar = setTimeout(buscar, 400); };
+  function pintarVariantes() {
+    var colores = []; vModelo.variantes.forEach(function (v) { if (colores.indexOf(v.color) < 0) colores.push(v.color); });
+    if (colores.length === 1) vColor = colores[0];
+    $('vColores').hidden = false; $('vColBtns').textContent = '';
+    colores.forEach(function (c) { var b = el('button', linda(c), c === vColor ? 'sel' : ''); b.onclick = function () { vColor = c; vClave = ''; pintarVariantes(); }; $('vColBtns').appendChild(b); });
+    $('vTallas').hidden = !vColor; $('vTalBtns').textContent = '';
+    vModelo.variantes.filter(function (v) { return v.color === vColor; }).forEach(function (v) {
+      var b = el('button', v.talla, v.clave === vClave ? 'sel' : ''); b.onclick = function () { vClave = v.clave; pintarVariantes(); }; $('vTalBtns').appendChild(b);
+    });
+    var va = vModelo.variantes.filter(function (v) { return v.clave === vClave; })[0];
+    $('btnVincular').hidden = !va;
+    if (va) $('btnVincular').textContent = 'Vincular · ' + (vModelo.modelo || linda(vModelo.descripcion)) + ' ' + linda(va.color) + ' ' + va.talla;
+  }
+  $('btnVincular').onclick = function () {
+    if (!vItem || !vClave) return;
+    $('btnVincular').disabled = true;
+    post({ accion: 'vincular', c: vItem.c, clave: vClave, fila: vItem.fila }).then(function (r) {
+      $('btnVincular').disabled = false;
+      if (r && r.ok) { banner(linda(r.detalle), vItem.c, 'ok'); mostrar('vContar'); cargarRack(); }
+      else alert('No se pudo vincular: ' + textoError(r && r.error));
+    }).catch(function () { $('btnVincular').disabled = false; alert('Sin conexión: no se pudo vincular.'); });
+  };
+  var despues = {}; // códigos que dejaste para después: no se vuelve a abrir solo en esta sesión
+  $('btnDespues').onclick = function () { if (vItem) despues[vItem.c] = true; mostrar('vContar'); };
 
-  // --- cámara y lectura (ZXing en WebAssembly: lee códigos de barras lineales y QR, también si están chicos o gastados)
-  // Por ahora solo códigos de barras lineales (los QR se ignoran: así no se lee por error el QR de configuración).
+  // --- terminar rack = confirmar
+  var siguiente = '';
+  $('btnTerminar').onclick = function () {
+    if (!rack) return;
+    if (cola.length) { alert('Hay ' + cola.length + ' códigos sin enviar. Espera a que se envíen para terminar el rack.'); return; }
+    mostrar('vTerminar'); $('tTitulo').textContent = linda(rack.split(' · ').pop()) + ' · resumen'; $('tLista').textContent = ''; $('tAvisos').hidden = true;
+    $('tEsc').textContent = '…'; $('tVest').textContent = '…';
+    var p = rack.split(' · '), m = /^RACK (\d+)$/.exec(p[p.length - 1]);
+    siguiente = m && p.length >= 3 ? 'RACK ' + (Number(m[1]) + 1) : '';
+    $('btnConfSig').textContent = siguiente ? 'Confirmar y pasar al ' + linda(siguiente) : 'Confirmar';
+    post({ accion: 'rack', rack: rack }).then(function (r) {
+      if (!r || !r.ok) { alert('No se pudo cargar el resumen: ' + textoError(r && r.error)); mostrar('vContar'); return; }
+      var s = r.resumen; $('tEsc').textContent = s.escaneos; $('tVest').textContent = s.vestidos.length;
+      s.vestidos.forEach(function (v) { var li = el('li'); li.appendChild(el('span', linda(v.descripcion + ' · ' + v.color + ' · ' + v.talla), 'd')); li.appendChild(el('b', String(v.cantidad))); $('tLista').appendChild(li); });
+      var av = []; if (s.porVincular) av.push(s.porVincular + ' por vincular'); if (s.porCompletar) av.push(s.porCompletar + ' sin color y talla'); if (s.dobles) av.push(s.dobles + ' posible lectura doble');
+      if (av.length) { $('tAvisos').hidden = false; $('tAvisos').textContent = ''; $('tAvisos').appendChild(el('b', av.join(' · '), 'warn')); $('tAvisos').appendChild(el('div', 'Se confirma lo demás; eso queda pendiente.', 'm s')); }
+    }).catch(function () { alert('Sin conexión: no se pudo cargar el resumen.'); mostrar('vContar'); });
+  };
+  function confirmarRack() {
+    return post({ accion: 'terminar', rack: rack }).then(function (r) {
+      if (r && r.ok) { banner(linda(rack.split(' · ').pop()) + ' confirmado', r.confirmados + ' líneas al inventario', 'ok'); return true; }
+      alert('No se pudo confirmar: ' + textoError(r && r.error)); return false;
+    }).catch(function () { alert('Sin conexión: no se pudo confirmar.'); return false; });
+  }
+  $('btnConfSig').onclick = function () {
+    var p = rack.split(' · ');
+    confirmarRack().then(function (ok) {
+      if (!ok) return;
+      if (siguiente) usarRack(p[0], p[1], siguiente).then(function (b) { if (!b) abrirRack(); });
+      else { mostrar('vContar'); cargarRack(); }
+    });
+  };
+  $('btnConfOtro').onclick = function () { confirmarRack().then(function (ok) { if (ok) abrirRack(); }); };
+  $('btnSeguir').onclick = $('btnTermVolver').onclick = function () { mostrar('vContar'); };
+
+  // --- cámara y lectura (ZXing en WebAssembly). Solo códigos de barras lineales.
   var FORMATOS = ['Code128', 'Code39', 'Code93', 'EAN-13', 'EAN-8', 'UPC-A', 'UPC-E', 'ITF', 'Codabar'];
-  var video = null, flujo = null, leyendo = false, cuadros = 0, hubo = false;
+  var video = null, flujo = null, leyendo = false, cuadros = 0;
   var canvas = document.createElement('canvas'), cx = canvas.getContext('2d', { willReadFrequently: true });
+  var msTotal = 0, msN = 0, ultimoTiempo = -1, ultimoAvance = Date.now(), verZona = false;
+  // Mismo código: se cuenta otra vez solo si salió de la cámara (sin verse por 1,2 s). Así dos vestidos iguales seguidos
+  // cuentan dos, y una etiqueta que se queda frente a la cámara cuenta una sola vez.
+  var enVista = { c: '', t: 0 };
+  function leido(c) {
+    var ahora = Date.now();
+    if (c === enVista.c && ahora - enVista.t < 1200) { enVista.t = ahora; return; }
+    enVista = { c: c, t: ahora }; agregar(c);
+  }
   function pausa(forzar) {
     if (forzar === true) pausado = true; else pausado = !pausado;
     $('btnPausa').textContent = pausado ? 'Reanudar cámara' : 'Pausar cámara';
     if (video) { try { pausado ? video.pause() : video.play(); } catch (e) {} }
   }
-  // Lectura del cuadro completo de la cámara, con rotación e inversión activadas.
-  var turno = 0, msTotal = 0, msN = 0, ultimoTiempo = -1, ultimoAvance = Date.now(), verZona = false;
-  function zona(completa) {
-    var vw = video.videoWidth, vh = video.videoHeight, caja = $('lector'), ar = (caja.clientWidth || 320) / (caja.clientHeight || 170), visW, visH;
-    if (vw / vh > ar) { visH = vh; visW = vh * ar; } else { visW = vw; visH = vw / ar; }
-    var f = completa ? 1 : 0.86, g = completa ? 1 : 0.6, rw = visW * f, rh = visH * g;
-    return { x: (vw - visW) / 2 + (visW - rw) / 2, y: (vh - visH) / 2 + (visH - rh) / 2, w: rw, h: rh };
-  }
   function bucle() {
     if (!flujo) return;
-    // vigilante: si el video dejó de avanzar (iOS a veces congela la cámara), se reinicia sola
-    if (video && !pausado) {
+    if (video && !pausado) { // vigilante: si iOS congela la cámara, se reinicia sola
       if (video.currentTime !== ultimoTiempo) { ultimoTiempo = video.currentTime; ultimoAvance = Date.now(); }
       else if (Date.now() - ultimoAvance > 4000) { ultimoAvance = Date.now(); $('estCam').textContent = 'La cámara se congeló: reiniciando…'; reiniciar(); return; }
     }
-    if (!pausado && !leyendo && video && video.readyState >= 2 && video.videoWidth) {
-      leyendo = true; hubo = false;
-      // se lee TODO el cuadro de la cámara (como en la v7, que leía mejor); el recuadro de pantalla es solo una guía
+    if (!pausado && vista === 'vContar' && !leyendo && video && video.readyState >= 2 && video.videoWidth) {
+      leyendo = true;
       var t0 = Date.now(), vw = video.videoWidth, vh = video.videoHeight, sw = Math.min(vw, 1280), sh = Math.round(vh * sw / vw);
       canvas.width = sw; canvas.height = sh; cx.drawImage(video, 0, 0, sw, sh);
       if (verZona) { var d = $('zonaVista'); d.width = sw; d.height = sh; d.getContext('2d').drawImage(canvas, 0, 0); }
       var img = cx.getImageData(0, 0, sw, sh);
       ZXingWASM.readBarcodes(img, { formats: FORMATOS, tryHarder: true, tryRotate: true, tryInvert: true, tryDownscale: true, maxNumberOfSymbols: 1 }).then(function (r) {
         cuadros++; msTotal += Date.now() - t0; msN++;
-        if (r && r.length && r[0].text) { hubo = true; $('estCam').textContent = 'Leído: ' + r[0].text + ' (' + r[0].format + ')'; agregar(r[0].text); }
-        else if (cuadros % 6 === 0) { $('estCam').textContent = 'Buscando código… (' + Math.round(msTotal / msN) + ' ms por cuadro)'; msTotal = 0; msN = 0; }
+        if (r && r.length && r[0].text) { $('estCam').textContent = 'Leído: ' + r[0].text + ' (' + r[0].format + ')'; leido(r[0].text); }
+        else if (cuadros % 6 === 0) { var ms = Math.round(msTotal / msN); $('estCam').textContent = 'Buscando código…'; $('diag').textContent = 'Lector: ' + ms + ' ms por cuadro · ' + sw + '×' + sh; msTotal = 0; msN = 0; }
       }).catch(function (e) { $('estCam').textContent = 'Error del lector: ' + (e && e.message ? e.message : e); })
-        .then(function () { setTimeout(function () { leyendo = false; }, hubo ? 700 : 0); });
+        .then(function () { leyendo = false; });
     }
     setTimeout(bucle, 40);
   }
@@ -242,23 +473,38 @@ ul{list-style:none;margin:6px 0;padding:0}li{display:flex;justify-content:space-
       $('lector').textContent = ''; $('lector').appendChild(video);
       try { s.getVideoTracks()[0].applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {}); } catch (e) {}
       return video.play();
-    }).then(function () { $('estCam').textContent = 'Cámara lista: apunta al código de barras'; $('btnCam').hidden = true; bucle(); })
-      .catch(function (e) { $('estCam').textContent = 'Cámara con problema: ' + (e && e.message ? e.message : e); $('btnCam').hidden = false; aviso('No se pudo abrir la cámara. Permite el acceso a la cámara (Ajustes > Safari > Cámara) y toca "Iniciar cámara".'); });
+    }).then(function () { $('estCam').textContent = 'Cámara lista'; $('filaCam').hidden = true; bucle(); })
+      .catch(function (e) { $('estCam').textContent = 'Cámara con problema: ' + (e && e.message ? e.message : e); $('filaCam').hidden = false; aviso('No se pudo abrir la cámara. Permite el acceso (Ajustes > Safari > Cámara) y toca "Iniciar cámara".'); });
   }
   try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {}
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) { estado(); enviar(); if (flujo && video && video.paused && !pausado) { reiniciar(); } try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {} } });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { estado(); enviar(); if (flujo && video && video.paused && !pausado) reiniciar(); try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {} } });
 
+  // --- botones generales
   $('btnCam').onclick = function () { aviso(''); $('estCam').textContent = 'Cámara: iniciando…'; try { if (flujo) flujo.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} flujo = null; iniciar(); };
+  $('lnkManual').onclick = function (e) { e.preventDefault(); $('filaManual').hidden = !$('filaManual').hidden; if (!$('filaManual').hidden) $('manual').focus(); };
+  $('btnManual').onclick = function () { agregar($('manual').value); $('manual').value = ''; };
+  $('manual').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btnManual').click(); });
+  $('btnAjustes').onclick = function () { pintarCuenta(); mostrar('vAjustes'); };
+  $('btnAjVolver').onclick = function () { mostrar('vContar'); };
   $('btnZona').onclick = function () { verZona = !verZona; $('zonaVista').hidden = !verZona; $('btnZona').textContent = verZona ? 'Ocultar zona analizada' : 'Ver zona analizada'; };
   $('btnSonido').textContent = 'Sonido: ' + (sonido ? 'encendido' : 'apagado');
   $('btnSonido').onclick = function () { sonido = !sonido; guardar('sonido', sonido); $('btnSonido').textContent = 'Sonido: ' + (sonido ? 'encendido' : 'apagado'); if (sonido) { desbloquear(); pitido(true); } };
   $('btnPausa').onclick = function () { pausa(); };
   $('btnReenviar').onclick = function () { aviso(''); enviar(); };
-  $('btnManual').onclick = function () { agregar($('manual').value); $('manual').value = ''; };
-  $('manual').addEventListener('keydown', function (e) { if (e.key === 'Enter') { $('btnManual').click(); } });
+  $('btnCambiarNombre').onclick = function () { $('inNombre').value = nombre; mostrar('vNombre'); };
   $('btnBorrarConf').onclick = function () { if (cola.length && !confirm('Hay ' + cola.length + ' códigos sin enviar. ¿Borrar igual?')) return; try { LS.clear(); } catch (e) {} location.reload(); };
+  $('btnNombre').onclick = function () {
+    var n = $('inNombre').value.trim(); if (!n) { alert('Escribe tu nombre.'); return; }
+    nombre = n.slice(0, 20); guardar('nombre', nombre); $('quien').textContent = nombre; arrancar();
+  };
 
-  pintar(); estado(); setInterval(estado, 8000); setInterval(enviar, 5000); iniciar();
+  var arrancado = false;
+  function arrancar() {
+    mostrar('vContar'); $('quien').textContent = nombre; ponerRack(rack); pintarCuenta();
+    if (arrancado) return; arrancado = true;
+    estado(); cargarRack(); setInterval(estado, 15000); setInterval(enviar, 5000); iniciar();
+  }
+  if (!nombre) mostrar('vNombre'); else arrancar();
   if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
 })();
 </script>
