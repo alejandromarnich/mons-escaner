@@ -46,20 +46,20 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 <body>
 
 <section id="conf" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v20</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v21</span></div>
   <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
   <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
 </section>
 
 <section id="vNombre" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v20</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v21</span></div>
   <p>¿Quién cuenta con este teléfono? Queda anotado en cada escaneo.</p>
   <input id="inNombre" maxlength="20" placeholder="Alejandro" autocomplete="off" style="width:100%">
   <div class="row"><button class="p" id="btnNombre">Guardar</button></div>
 </section>
 
 <section id="vContar" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v20 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v21 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <div><div class="m s">Tu rack</div><b id="rackTxt">Sin rack</b></div>
     <button class="chico" id="btnCambiar">Cambiar</button>
@@ -154,7 +154,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   function el(tag, txt, cls) { var e = document.createElement(tag); if (txt !== undefined) e.textContent = txt; if (cls) e.className = cls; return e; }
   // "CD0234 · ROSE GOLD" → "CD0234 · Rose Gold": las palabras con números (modelos) quedan en mayúsculas
   function linda(s) { return String(s || '').replace(/[0-9A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/g, function (w) { return /\d/.test(w) || /^(X{0,3}[SL]|M)$/i.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }); }
-  var VERSION = 20;
+  var VERSION = 21;
   function esMons(c) { return /^510\d{7}$/.test(String(c || '')); }   // etiqueta Mons: siempre un color y talla
 
   // --- configuración: llega una vez en el enlace (#u=...&t=...) y se guarda en el teléfono
@@ -434,7 +434,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   var vItem = null, vEditar = false, sel = {}, tBuscar = 0;
   function abrirVincular(x) {
     vItem = x; vEditar = false; sel = { modelo: null, nuevo: false, marca: '', color: '', talla: '' };
-    $('vTitulo').textContent = x.estado === 'COMPLETAR' ? 'Falta color y talla' : 'No conozco este código';
+    $('vTitulo').textContent = x.estado === 'COMPLETAR' ? (x.estilo ? 'Falta color y talla (si es otro modelo, búscalo)' : 'Código de la marca: elige modelo, color y talla') : 'No conozco este código';
     $('vCodigo').textContent = x.c + (esMons(x.c) && x.estado === 'DESCONOCIDO' ? ' · código Mons: elige su color y talla' : ' · ya quedó contado');
     $('btnDespues').textContent = 'Seguir escaneando (queda por vincular)';
     $('inBuscar').value = x.estilo || ''; $('inNomVest').value = ''; mostrar('vVincular');
