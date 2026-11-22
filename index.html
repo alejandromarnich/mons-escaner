@@ -41,20 +41,20 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
 <body>
 
 <section id="conf" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v16</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v17</span></div>
   <p>Falta la configuración de este teléfono. Escanea con la cámara el QR de configuración que te dio Claude, o pega aquí el enlace:</p>
   <div class="row"><input id="pegar" placeholder="Pega el enlace de configuración"><button class="p" id="btnPegar" style="flex:0 0 96px">Guardar</button></div>
 </section>
 
 <section id="vNombre" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m">v16</span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m">v17</span></div>
   <p>¿Quién cuenta con este teléfono? Queda anotado en cada escaneo.</p>
   <input id="inNombre" maxlength="20" placeholder="Alejandro" autocomplete="off" style="width:100%">
   <div class="row"><button class="p" id="btnNombre">Guardar</button></div>
 </section>
 
 <section id="vContar" hidden>
-  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v16 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
+  <div class="top"><h1>Escáner Mons</h1><span class="m"><span id="quien"></span> · v17 <button class="chico" id="btnAjustes" aria-label="Ajustes">⚙</button></span></div>
   <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <div><div class="m s">Tu rack</div><b id="rackTxt">Sin rack</b></div>
     <button class="chico" id="btnCambiar">Cambiar</button>
@@ -106,11 +106,13 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
   <div class="card" id="vNuevo" hidden>
     <b id="nTitulo"></b>
     <div id="nModelo"><input id="nDesc" autocapitalize="characters" autocomplete="off" placeholder="Nombre (ej. Vestido largo satín)" style="width:100%;margin:6px 0">
-      <input id="nMarca" autocapitalize="characters" autocomplete="off" placeholder="Marca (ej. May Queen)" style="width:100%;margin:6px 0"></div>
+      <input id="nMarca" autocapitalize="characters" autocomplete="off" placeholder="Marca (ej. May Queen)" style="width:100%;margin:6px 0">
+      <input id="nCodMod" autocapitalize="characters" autocomplete="off" placeholder="Número de modelo (ej. A1138)" style="width:100%;margin:6px 0"></div>
     <div class="row"><input id="nColor" autocapitalize="characters" autocomplete="off" placeholder="Color"><input id="nTalla" autocapitalize="characters" autocomplete="off" placeholder="Talla"></div>
     <button class="p" id="btnCrearV" style="width:100%">Crear y vincular</button>
   </div>
   <div class="pie"><button class="p" id="btnVincular" style="width:100%" hidden></button>
+    <div class="row"><button id="btnExacto" hidden>Es etiqueta Mons: solo este color y talla</button></div>
     <div class="row"><button id="btnDespues">Después (queda por vincular)</button></div></div>
 </section>
 
@@ -412,7 +414,7 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     $('vTitulo').textContent = x.estado === 'COMPLETAR' ? 'Falta color y talla' : 'No conozco este código';
     $('vCodigo').textContent = x.c + ' · ya quedó contado';
     $('vModelos').textContent = ''; $('vColores').hidden = true; $('vTallas').hidden = true; $('btnVincular').hidden = true;
-    $('btnOtroCT').hidden = true; $('vNuevo').hidden = true; ['nDesc', 'nMarca', 'nColor', 'nTalla'].forEach(function (k) { $(k).value = ''; });
+    $('btnOtroCT').hidden = true; $('vNuevo').hidden = true; ['nDesc', 'nMarca', 'nCodMod', 'nColor', 'nTalla'].forEach(function (k) { $(k).value = ''; });
     $('inBuscar').value = x.estilo || ''; mostrar('vVincular');
     if (x.estilo) buscar(); else setTimeout(function () { $('inBuscar').focus(); }, 50);
   }
@@ -443,18 +445,21 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     });
     var va = vModelo.variantes.filter(function (v) { return v.clave === vClave; })[0];
     $('btnOtroCT').hidden = false; if (nModo === 'otro') $('nTitulo').textContent = 'Otro color o talla de ' + (vModelo.modelo || linda(vModelo.descripcion));
-    $('btnVincular').hidden = !va;
-    if (va) $('btnVincular').textContent = 'Vincular · ' + (vModelo.modelo || linda(vModelo.descripcion)) + ' ' + linda(va.color) + ' ' + va.talla;
+    var aModelo = vItem && vItem.estado === 'DESCONOCIDO' && !!vModelo.modelo;   // etiqueta de proveedor: se vincula al modelo
+    $('btnVincular').hidden = !va; $('btnExacto').hidden = !(va && aModelo);
+    if (va) $('btnVincular').textContent = (aModelo ? 'Vincular al modelo ' + vModelo.modelo + ' · ' : 'Elegir · ' + (vModelo.modelo || linda(vModelo.descripcion)) + ' ') + linda(va.color) + ' ' + va.talla;
   }
-  $('btnVincular').onclick = function () {
+  function vincularA(modo) {
     if (!vItem || !vClave) return;
     $('btnVincular').disabled = true;
-    post({ accion: 'vincular', c: vItem.c, clave: vClave, fila: vItem.fila }).then(function (r) {
+    post({ accion: 'vincular', c: vItem.c, clave: vClave, fila: vItem.fila, modo: modo }).then(function (r) {
       $('btnVincular').disabled = false;
       if (r && r.ok) { banner(linda(r.detalle), vItem.c, 'ok'); mostrar('vContar'); cargarRack(); }
       else alert('No se pudo vincular: ' + textoError(r && r.error));
     }).catch(function () { $('btnVincular').disabled = false; alert('Sin conexión: no se pudo vincular.'); });
-  };
+  }
+  $('btnVincular').onclick = function () { vincularA('modelo'); };
+  $('btnExacto').onclick = function () { if (confirm('¿Es una etiqueta Mons? El código quedará amarrado solo a este color y talla.')) vincularA('exacto'); };
   // --- color y talla (o vestido) que no está en el catálogo: se crea y se vincula
   var nModo = '';
   function abrirNuevo(modo) {
@@ -469,11 +474,11 @@ li .d{flex:1;min-width:0;overflow-wrap:anywhere}li.toca{cursor:pointer}
     if (!vItem) return;
     var nv = { color: $('nColor').value.trim(), talla: $('nTalla').value.trim() };
     if (nModo === 'otro' && vModelo) { nv.estilo = vModelo.modelo || ''; nv.marca = vModelo.marca; nv.descripcion = vModelo.descripcion; }
-    else { nv.descripcion = $('nDesc').value.trim(); nv.marca = $('nMarca').value.trim(); }
+    else { nv.descripcion = $('nDesc').value.trim(); nv.marca = $('nMarca').value.trim(); nv.estilo = $('nCodMod').value.trim(); }
     if (!nv.descripcion) { alert('Escribe el nombre del vestido.'); return; }
     if (!nv.color || !nv.talla) { alert('Escribe el color y la talla.'); return; }
     $('btnCrearV').disabled = true;
-    post({ accion: 'vincular', c: vItem.c, fila: vItem.fila, nuevo: nv }).then(function (r) {
+    post({ accion: 'vincular', c: vItem.c, fila: vItem.fila, nuevo: nv, modo: 'modelo' }).then(function (r) {
       $('btnCrearV').disabled = false;
       if (r && r.ok) { banner(linda(r.detalle), vItem.c + ' · nuevo', 'ok'); mostrar('vContar'); cargarRack(); }
       else alert('No se pudo crear: ' + textoError(r && r.error));
